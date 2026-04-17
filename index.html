@@ -61,21 +61,22 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 .tl{position:relative}
 .tl::before{content:'';position:absolute;left:43px;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,var(--wa3) 6%,var(--wa3) 94%,transparent)}
 .tlr{display:flex;gap:10px;margin-bottom:11px;animation:fadeUp .3s ease both}
-.tlt{width:43px;font-family:'Shippori Mincho',serif;font-size:11px;color:var(--su3);text-align:right;padding-top:14px;flex-shrink:0}
+.tlt{width:46px;font-family:'Noto Sans TC',sans-serif;font-size:13px;color:var(--su3);text-align:right;padding-top:14px;flex-shrink:0}
 .tld{width:9px;height:9px;border-radius:50%;border:2px solid var(--wa3);background:var(--wa);flex-shrink:0;margin-top:16px;position:relative;z-index:1}
 .tld.sight{border-color:var(--kin);background:#fdf4e0}
 .tld.food{border-color:var(--aka);background:#fde8e4}
 .tld.transport{border-color:var(--ai);background:#e4eff7}
 .tld.shopping{border-color:var(--mg);background:#eaf4e4}
+.tld.hotel{border-color:#806898;background:#f0ecf8}
 .tlc{flex:1;background:white;border-radius:7px;border:1px solid var(--wa3);box-shadow:0 2px 6px var(--sh);overflow:hidden;position:relative}
 .tlc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
-.tlc.sight::before{background:var(--kin)}.tlc.food::before{background:var(--aka)}.tlc.transport::before{background:var(--ai)}.tlc.shopping::before{background:var(--mg)}
+.tlc.sight::before{background:var(--kin)}.tlc.food::before{background:var(--aka)}.tlc.transport::before{background:var(--ai)}.tlc.shopping::before{background:var(--mg)}.tlc.hotel::before{background:#806898}
 .tlm{padding:11px 12px}
 .tlh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px}
-.tln{font-size:var(--md);font-weight:700;color:var(--su);line-height:1.3}
-.tltag{font-size:var(--xs);padding:2px 7px;border-radius:3px;font-weight:700;flex-shrink:0;margin-left:5px}
-.tltag.sight{background:#fdf4e0;color:var(--kin)}.tltag.food{background:#fde8e4;color:var(--aka)}.tltag.transport{background:#e4eff7;color:var(--ai)}.tltag.shopping{background:#eaf4e4;color:var(--mg)}
-.tlde{font-size:var(--sm);color:var(--su2);line-height:1.6;margin-bottom:6px}
+.tln{font-size:var(--lg);font-weight:700;color:var(--su);line-height:1.3}
+.tltag{font-size:var(--sm);padding:2px 7px;border-radius:3px;font-weight:700;flex-shrink:0;margin-left:5px}
+.tltag.sight{background:#fdf4e0;color:var(--kin)}.tltag.food{background:#fde8e4;color:var(--aka)}.tltag.transport{background:#e4eff7;color:var(--ai)}.tltag.shopping{background:#eaf4e4;color:var(--mg)}.tltag.hotel{background:#f0ecf8;color:#806898}
+.tlde{font-size:var(--md);color:var(--su2);line-height:1.6;margin-bottom:6px}
 .tlmt{display:flex;gap:10px}
 .tlmt span{font-size:var(--sm);color:var(--su3)}
 .xbtn{display:flex;align-items:center;gap:3px;font-size:var(--xs);color:var(--ai);margin-top:6px;cursor:pointer;font-weight:600;border:none;background:none;padding:0;font-family:'Noto Sans TC',sans-serif}
@@ -282,7 +283,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 
 <script>
 const SHEET_ID='1bOCgGEbMbJr_B771DvL6iFqX0fLPivfCA_4ma6aq2T4';
-const TLAB={sight:'景點',food:'餐飲',transport:'交通',shopping:'購物'};
+const TLAB={sight:'景點',food:'餐飲',transport:'交通',shopping:'購物',hotel:'住宿'};
 let S={trip:{title:'—',dates:'—'},days:[],itinerary:{},weatherDays:{},weatherData:{}};
 let curDay={itin:0,transport:0,weather:0},curCity=0,wxPlaces=[];
 
@@ -386,8 +387,8 @@ function parseItinerary(rows){
   const hdr=rows[0];
   const fi=(...keys)=>{for(const k of keys){const i=hdr.findIndex(h=>h===k||h.includes(k));if(i>=0)return i;}return -1;};
   const cDay=fi('Day','day','天');
-  const tAll=hdr.reduce((a,h,i)=>{if(h==='時間')a.push(i);return a;},[]);
-  const cTime=tAll[0]??1,cDur=tAll[1]??5;
+  const cTime=fi('時間','time');          // 出發時刻
+  const cDur =fi('區間','duration','時長'); // 時間區間 如 2h50m
   const cName=fi('標題','名稱'),cCat=fi('分類','類型'),cDesc=fi('說明','描述');
   const cCost=fi('費用'),cNote=fi('備註','備注'),cUrl=fi('網頁','連結');
   const fc=(r,c,fb)=>String(r[c>=0?c:fb]??'').trim();
@@ -399,8 +400,8 @@ function parseItinerary(rows){
     const cat=fc(r,cCat,3),name=fc(r,cName,2);
     if(!name)continue;
     const type=mapCat(cat);
-    S.itinerary[dayNum].push({time:fc(r,cTime,1),type,icon:typeIcon(type),name,cat,
-      desc:fc(r,cDesc,4),dur:fc(r,cDur,5),cost:fc(r,cCost,6),
+    S.itinerary[dayNum].push({time:fc(r,cTime,cTime>=0?cTime:1),type,icon:typeIcon(type),name,cat,
+      desc:fc(r,cDesc,4),dur:fc(r,cDur,cDur>=0?cDur:5),cost:fc(r,cCost,6),
       note:fc(r,cNote,7),url:fc(r,cUrl,8)});
   }
   console.log('行程:',Object.values(S.itinerary).flat().length,'筆');
@@ -432,8 +433,8 @@ function parseWeatherSheet(rows){
   console.log('天氣地點:',wxPlaces);
 }
 
-function mapCat(c){const s=(c||'').toLowerCase();if(s.includes('餐')||s.includes('食')||s.includes('飲'))return'food';if(s.includes('交通')||s.includes('車')||s.includes('機')||s.includes('船')||s.includes('巴士')||s.includes('電車'))return'transport';if(s.includes('購')||s.includes('買'))return'shopping';return'sight';}
-function typeIcon(t){return{sight:'⛩',food:'🍜',transport:'🚅',shopping:'🛍'}[t]||'📍';}
+function mapCat(c){const s=(c||'').toLowerCase();if(s.includes('餐')||s.includes('食')||s.includes('飲'))return'food';if(s.includes('交通')||s.includes('車')||s.includes('機')||s.includes('船')||s.includes('巴士')||s.includes('電車'))return'transport';if(s.includes('購')||s.includes('買'))return'shopping';if(s.includes('住宿')||s.includes('飯店')||s.includes('旅館')||s.includes('hotel')||s.includes('inn')||s.includes('民宿'))return'hotel';return'sight';}
+function typeIcon(t){return{sight:'⛩',food:'🍜',transport:'🚅',shopping:'🛍',hotel:'🏨'}[t]||'📍';}
 
 // ── 天氣 API
 const COORDS={'名古屋':{lat:35.1815,lon:136.9066,name:'名古屋·NAGOYA',tenki:'https://tenki.jp/forecast/5/26/5110/23100/'},'愛知':{lat:35.1802,lon:136.9066,name:'愛知縣',tenki:'https://tenki.jp/forecast/5/26/5110/23100/'},'三重':{lat:34.7303,lon:136.5086,name:'三重縣',tenki:'https://tenki.jp/forecast/5/27/5410/24202/'},'伊勢':{lat:34.4884,lon:136.7076,name:'伊勢',tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},'志摩':{lat:34.3273,lon:136.8312,name:'志摩',tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},'鳥羽':{lat:34.4849,lon:136.8437,name:'鳥羽',tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},'松阪':{lat:34.5789,lon:136.5274,name:'松阪',tenki:'https://tenki.jp/forecast/5/27/5410/24205/'},'滋賀':{lat:35.0045,lon:135.8686,name:'滋賀縣',tenki:'https://tenki.jp/forecast/6/29/6000/25201/'},'彦根':{lat:35.2752,lon:136.2636,name:'彦根',tenki:'https://tenki.jp/forecast/6/29/6000/25202/'},'近江八幡':{lat:35.1284,lon:136.0985,name:'近江八幡',tenki:'https://tenki.jp/forecast/6/29/6000/25208/'},'琵琶湖':{lat:35.2958,lon:136.1253,name:'琵琶湖周邊',tenki:'https://tenki.jp/forecast/6/29/6000/25201/'},'京都':{lat:35.0116,lon:135.7681,name:'京都·KYOTO',tenki:'https://tenki.jp/forecast/6/30/6100/26100/'},'大阪':{lat:34.6937,lon:135.5022,name:'大阪·OSAKA',tenki:'https://tenki.jp/forecast/6/30/6200/27100/'},'奈良':{lat:34.6851,lon:135.8048,name:'奈良·NARA',tenki:'https://tenki.jp/forecast/6/30/6300/29201/'},'東京':{lat:35.6762,lon:139.6503,name:'東京·TOKYO',tenki:'https://tenki.jp/forecast/3/16/4410/13101/'},'中部機場':{lat:34.8583,lon:136.8050,name:'中部機場',tenki:'https://tenki.jp/forecast/5/26/5110/23234/'}};
