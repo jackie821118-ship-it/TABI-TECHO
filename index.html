@@ -256,7 +256,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
     <div class="hwhdr">🕐 每小時氣溫預報</div>
     <div class="hscr" id="hourly"></div>
   </div>
-  <div class="sec-ttl">8日天氣預報</div>
+  <div class="sec-ttl">天氣預報</div>
   <div class="fcscr" id="forecast"></div>
   <div class="sec-ttl">穿衣建議</div>
   <div class="adv-card"><div class="adv-txt" id="advice">—</div></div>
@@ -286,7 +286,6 @@ const TLAB={sight:'景點',food:'餐飲',transport:'交通',shopping:'購物'};
 let S={trip:{title:'—',dates:'—'},days:[],itinerary:{},weatherDays:{},weatherData:{}};
 let curDay={itin:0,transport:0,weather:0},curCity=0,wxPlaces=[];
 
-// gviz CSV — GitHub Pages(https)環境直接 fetch，無 CORS 問題
 function csvUrl(s){return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(s)}`;}
 
 function parseCSV(text){
@@ -330,16 +329,39 @@ async function loadAll(){
   toast(S.days.length>0?'✓ 資料已更新':'⚠ 未讀到資料，請確認試算表公開設定');
 }
 
-// 主題: row[0]=[旅遊主題,愛知…] row[1]=[旅遊時間,2026…] row[2]=欄位標題 row[3+]=每日資料
+// ── 修正1&2&3：主題頁解析
+// CSV 實際結構：
+//   row[0] = ["旅遊主題", "愛知．三重．滋賀"]  ← B1 值在 index 1
+//   row[1] = ["旅遊時間", "2026/05/17-05/21"]  ← B2 值在 index 1
+//   row[2] = ["Day", "日期", "標題"]            ← 欄位標題列
+//   row[3] = ["1", "2026/05/17", "出發飛抵名古屋"] ← 第一天
+//   row[4] = ["2", "2026/05/18", "遊覽滋賀琵琶湖"] ← 第二天
 function parseTheme(rows){
-  if(!rows||rows.length<4)return;
+  if(!rows||rows.length<3)return;
+
+  // 修正1：B1 = 旅遊主題值
   S.trip.title=(rows[0]?.[1]||'').trim()||'旅遊手帳';
+  // 修正2：B2 = 旅遊時間值
   S.trip.dates=(rows[1]?.[1]||'').trim();
+
+  // 修正3：row[2] 是欄位標題（Day/日期/標題），row[3] 起是每日資料
   S.days=[];
   for(let i=3;i<rows.length;i++){
-    const r=rows[i],dayNum=parseInt(r[0]);
+    const r=rows[i];
+    const dayNum=parseInt(r[0]);
     if(isNaN(dayNum)||dayNum<1)continue;
-    S.days.push({dayNum,date:(r[1]||'').trim(),title:(r[2]||'').trim()||`Day ${dayNum}`});
+    // 日期格式 2026/05/17 → 取月/日顯示 5/17
+    const rawDate=(r[1]||'').trim();
+    const dateMatch=rawDate.match(/\d{4}[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    const dateShort=dateMatch?`${parseInt(dateMatch[1])}/${parseInt(dateMatch[2])}`:rawDate;
+    const dateMonth=dateMatch?`${parseInt(dateMatch[1])}月`:'';
+    S.days.push({
+      dayNum,
+      date:rawDate,        // 完整日期 2026/05/17
+      dateShort,           // 短日期 5/17
+      dateMonth,           // 月份 5月
+      title:(r[2]||'').trim()||`Day ${dayNum}`
+    });
   }
   S.days.sort((a,b)=>a.dayNum-b.dayNum);
   console.log('主題:',S.trip,'天數:',S.days.length);
@@ -365,12 +387,16 @@ function parseItinerary(rows){
     const cat=fc(r,cCat,3),name=fc(r,cName,2);
     if(!name)continue;
     const type=mapCat(cat);
-    S.itinerary[dayNum].push({time:fc(r,cTime,1),type,icon:typeIcon(type),name,cat,desc:fc(r,cDesc,4),dur:fc(r,cDur,5),cost:fc(r,cCost,6),note:fc(r,cNote,7),url:fc(r,cUrl,8)});
+    S.itinerary[dayNum].push({time:fc(r,cTime,1),type,icon:typeIcon(type),name,cat,
+      desc:fc(r,cDesc,4),dur:fc(r,cDur,5),cost:fc(r,cCost,6),
+      note:fc(r,cNote,7),url:fc(r,cUrl,8)});
   }
   console.log('行程:',Object.values(S.itinerary).flat().length,'筆');
 }
 
-// 天氣: row[0]=欄位名 row[1+]=資料
+// ── 修正4：天氣頁解析
+// row[0]=欄位名[Day,時間,地點] row[1+]=每天對應地點
+// weatherDays[dayNum] = [{time,place}, ...]
 function parseWeatherSheet(rows){
   if(!rows||rows.length<2)return;
   S.weatherDays={};
@@ -385,15 +411,19 @@ function parseWeatherSheet(rows){
     if(!S.weatherDays[dayNum])S.weatherDays[dayNum]=[];
     S.weatherDays[dayNum].push({time:fc(r,cTime,1),place});
   }
+  // 唯一地點（保持出現順序）
   const seen=new Set();wxPlaces=[];
-  for(const arr of Object.values(S.weatherDays))for(const d of arr)if(d.place&&!seen.has(d.place)){seen.add(d.place);wxPlaces.push(d.place);}
+  for(const arr of Object.values(S.weatherDays))
+    for(const d of arr)
+      if(d.place&&!seen.has(d.place)){seen.add(d.place);wxPlaces.push(d.place);}
   if(!wxPlaces.length)wxPlaces=['名古屋'];
   console.log('天氣地點:',wxPlaces);
 }
 
-function mapCat(c){const s=(c||'').toLowerCase();if(s.includes('餐')||s.includes('食')||s.includes('飲'))return'food';if(s.includes('交通')||s.includes('車')||s.includes('機')||s.includes('船'))return'transport';if(s.includes('購')||s.includes('買'))return'shopping';return'sight';}
+function mapCat(c){const s=(c||'').toLowerCase();if(s.includes('餐')||s.includes('食')||s.includes('飲'))return'food';if(s.includes('交通')||s.includes('車')||s.includes('機')||s.includes('船')||s.includes('巴士')||s.includes('電車'))return'transport';if(s.includes('購')||s.includes('買'))return'shopping';return'sight';}
 function typeIcon(t){return{sight:'⛩',food:'🍜',transport:'🚅',shopping:'🛍'}[t]||'📍';}
 
+// ── 天氣 API
 const COORDS={'名古屋':{lat:35.1815,lon:136.9066,name:'名古屋·NAGOYA',tenki:'https://tenki.jp/forecast/5/26/5110/23100/'},'愛知':{lat:35.1802,lon:136.9066,name:'愛知縣',tenki:'https://tenki.jp/forecast/5/26/5110/23100/'},'三重':{lat:34.7303,lon:136.5086,name:'三重縣',tenki:'https://tenki.jp/forecast/5/27/5410/24202/'},'伊勢':{lat:34.4884,lon:136.7076,name:'伊勢',tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},'志摩':{lat:34.3273,lon:136.8312,name:'志摩',tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},'鳥羽':{lat:34.4849,lon:136.8437,name:'鳥羽',tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},'松阪':{lat:34.5789,lon:136.5274,name:'松阪',tenki:'https://tenki.jp/forecast/5/27/5410/24205/'},'滋賀':{lat:35.0045,lon:135.8686,name:'滋賀縣',tenki:'https://tenki.jp/forecast/6/29/6000/25201/'},'彦根':{lat:35.2752,lon:136.2636,name:'彦根',tenki:'https://tenki.jp/forecast/6/29/6000/25202/'},'近江八幡':{lat:35.1284,lon:136.0985,name:'近江八幡',tenki:'https://tenki.jp/forecast/6/29/6000/25208/'},'琵琶湖':{lat:35.2958,lon:136.1253,name:'琵琶湖周邊',tenki:'https://tenki.jp/forecast/6/29/6000/25201/'},'京都':{lat:35.0116,lon:135.7681,name:'京都·KYOTO',tenki:'https://tenki.jp/forecast/6/30/6100/26100/'},'大阪':{lat:34.6937,lon:135.5022,name:'大阪·OSAKA',tenki:'https://tenki.jp/forecast/6/30/6200/27100/'},'奈良':{lat:34.6851,lon:135.8048,name:'奈良·NARA',tenki:'https://tenki.jp/forecast/6/30/6300/29201/'},'東京':{lat:35.6762,lon:139.6503,name:'東京·TOKYO',tenki:'https://tenki.jp/forecast/3/16/4410/13101/'},'中部機場':{lat:34.8583,lon:136.8050,name:'中部機場',tenki:'https://tenki.jp/forecast/5/26/5110/23234/'}};
 function resolveC(p){if(COORDS[p])return COORDS[p];for(const[k,v]of Object.entries(COORDS)){if(p.includes(k)||k.includes(p))return v;}return COORDS['名古屋'];}
 function wmo(c){if(c===0)return{ic:'☀️',d:'晴天'};if(c<=2)return{ic:'🌤',d:'部分多雲'};if(c===3)return{ic:'☁️',d:'多雲'};if(c<=49)return{ic:'🌫',d:'霧'};if(c<=59)return{ic:'🌦',d:'毛毛雨'};if(c<=69)return{ic:'🌧',d:'雨'};if(c<=79)return{ic:'🌨',d:'雪'};if(c<=84)return{ic:'🌧',d:'陣雨'};if(c<=99)return{ic:'⛈',d:'雷暴'};return{ic:'🌡',d:'—'};}
@@ -401,39 +431,259 @@ async function fetchWx(place){const c=resolveC(place);const r=await fetch(`https
 async function fetchAllWeather(){S.weatherData={};await Promise.allSettled(wxPlaces.map(async p=>{try{S.weatherData[p]=await fetchWx(p);}catch(e){}}));if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>gpsWx(p.coords.latitude,p.coords.longitude),()=>{},{timeout:8000,maximumAge:300000});}
 async function gpsWx(la,lo){try{const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`)).json();let best='名古屋',md=Infinity;for(const[k,v]of Object.entries(COORDS)){const dd=Math.hypot(v.lat-la,v.lon-lo);if(dd<md){md=dd;best=k;}}S.weatherData['目前位置']={coords:{...resolveC(best),name:'目前位置(GPS)'},data:d};const t=Math.round(d.current_weather?.temperature??0),w=wmo(d.current_weather?.weathercode??0);document.getElementById('hdr-temp').textContent=t+'°';document.getElementById('hdr-sub').textContent=w.ic+' 目前位置';document.getElementById('gps-txt').textContent='📍 目前位置(即時)';}catch(e){}}
 
-function renderHeader(){document.getElementById('ttl-txt').textContent=S.trip.title||'旅遊手帳';document.getElementById('dt-txt').textContent=S.trip.dates||'—';document.title=(S.trip.title||'旅遊手帳')+' · 手帳';if(wxPlaces[0]&&S.weatherData[wxPlaces[0]]){const{data}=S.weatherData[wxPlaces[0]];const t=Math.round(data.current_weather?.temperature??0),w=wmo(data.current_weather?.weathercode??0);document.getElementById('hdr-temp').textContent=t+'°';document.getElementById('hdr-sub').textContent=w.ic+' '+wxPlaces[0];}}
+// ── RENDER HEADER（修正1&2）
+function renderHeader(){
+  document.getElementById('ttl-txt').textContent=S.trip.title||'旅遊手帳';
+  document.getElementById('dt-txt').textContent=S.trip.dates||'—';
+  document.title=(S.trip.title||'旅遊手帳')+' · 手帳';
+  if(wxPlaces[0]&&S.weatherData[wxPlaces[0]]){
+    const{data}=S.weatherData[wxPlaces[0]];
+    const t=Math.round(data.current_weather?.temperature??0),w=wmo(data.current_weather?.weathercode??0);
+    document.getElementById('hdr-temp').textContent=t+'°';
+    document.getElementById('hdr-sub').textContent=w.ic+' '+wxPlaces[0];
+  }
+}
 
+// ── CITY TABS（修正4：根據天氣頁地點動態生成）
 const CICON={'名古屋':'🏯','愛知':'🌸','三重':'⛩','伊勢':'⛩','志摩':'🌊','鳥羽':'🌊','松阪':'🥩','滋賀':'🏔','彦根':'🏯','近江八幡':'🏯','琵琶湖':'🏞','京都':'⛩','大阪':'🏯','東京':'🗼','奈良':'🦌'};
-function buildCityTabs(){const ct=document.getElementById('city-tabs');if(!ct)return;ct.innerHTML=wxPlaces.filter(p=>p!=='目前位置').map((p,i)=>`<button class="ctab ${i===curCity?'on':''}" onclick="switchCity(this,${i})">${CICON[p]||'🌸'} ${p}</button>`).join('');}
+function buildCityTabs(){
+  const ct=document.getElementById('city-tabs');if(!ct)return;
+  ct.innerHTML=wxPlaces.filter(p=>p!=='目前位置').map((p,i)=>
+    `<button class="ctab ${i===curCity?'on':''}" onclick="switchCity(this,${i})">${CICON[p]||'🌸'} ${p}</button>`
+  ).join('');
+}
 function updateCityTabs(){document.querySelectorAll('.ctab').forEach((b,i)=>b.classList.toggle('on',i===curCity));}
 function switchCity(btn,idx){curCity=idx;updateCityTabs();renderWeather();}
 
-function mkDayBar(cId,tabKey,cb){const sc=document.getElementById(cId);if(!sc)return;sc.innerHTML='';S.days.forEach((d,i)=>{let top=String(d.dayNum),bot='D'+d.dayNum;if(d.date){const m=d.date.match(/(\d{1,2})[\/\-](\d{1,2})/);if(m){top=m[2];bot=m[1]+'月 D'+d.dayNum;}}const ch=document.createElement('div');ch.className='dc'+(i===curDay[tabKey]?' on':'');ch.innerHTML=`<span class="dn">${top}</span><span class="dl">${bot}</span>`;ch.onclick=()=>{curDay[tabKey]=i;mkDayBar(cId,tabKey,cb);cb(i);};sc.appendChild(ch);});}
+// ── 修正3：DAY BAR 顯示正確日期
+// 上方大字：日期的「日」（如 17）
+// 下方小字：月份+天數（如 5月 D1）
+function mkDayBar(cId,tabKey,cb){
+  const sc=document.getElementById(cId);if(!sc)return;sc.innerHTML='';
+  S.days.forEach((d,i)=>{
+    // dateShort = "5/17"，取斜線後的數字當大字
+    const parts=d.dateShort?d.dateShort.split('/'):'';
+    const top=parts.length===2?parts[1]:String(d.dayNum);  // 17
+    const bot=parts.length===2?`${parts[0]}月 D${d.dayNum}`:`D${d.dayNum}`;  // 5月 D1
+    const ch=document.createElement('div');
+    ch.className='dc'+(i===curDay[tabKey]?' on':'');
+    ch.innerHTML=`<span class="dn">${top}</span><span class="dl">${bot}</span>`;
+    ch.onclick=()=>{curDay[tabKey]=i;mkDayBar(cId,tabKey,cb);cb(i);};
+    sc.appendChild(ch);
+  });
+}
 
+// ── RENDER ITINERARY
 function renderItinDays(){mkDayBar('itin-days','itin',renderItinDay);}
-function renderItinDay(idx){const d=S.days[idx];if(!d){setEl('itin-content','<div class="loading-card"><div>無資料</div></div>');return;}const items=S.itinerary[d.dayNum]||[];let h=`<div class="dtrow"><div class="dttxt">${d.title}</div></div><div class="tl">`;if(!items.length){h+='<div class="loading-card" style="padding:18px"><div>此天無行程資料</div></div>';}else{items.forEach((it,i)=>{const hX=(it.note&&it.note.trim())||(it.url&&it.url.trim());const xb=hX?`<button class="xbtn" id="xb${idx}${i}" onclick="toggleNote(${idx},${i})"><span class="ar">▶</span> 備注/更多資訊</button>`:'';const xn=hX?`<div class="xnotes" id="xn${idx}${i}">${it.note?`<div class="xntxt">${it.note.replace(/\n/g,'<br>')}</div>`:''}${it.url?`<a class="xlink" href="${it.url}" target="_blank">🔗 開啟網頁 ↗</a>`:''}</div>`:'';h+=`<div class="tlr" style="animation-delay:${i*.04}s"><div class="tlt">${it.time}</div><div class="tld ${it.type}"></div><div class="tlc ${it.type}"><div class="tlm"><div class="tlh"><div class="tln">${it.icon} ${it.name}</div><div class="tltag ${it.type}">${TLAB[it.type]||it.cat}</div></div><div class="tlde">${it.desc}</div>${(it.dur||it.cost)?`<div class="tlmt">${it.dur?`<span>⏱ ${it.dur}</span>`:''}${it.cost?`<span>💴 ${it.cost}</span>`:''}</div>`:''} ${xb}</div>${xn}</div></div>`;});}h+='</div>';setEl('itin-content',h);}
+function renderItinDay(idx){
+  const d=S.days[idx];
+  if(!d){setEl('itin-content','<div class="loading-card"><div>無資料</div></div>');return;}
+  const items=S.itinerary[d.dayNum]||[];
+  // 標題列：顯示日期 + 每日標題
+  let h=`<div class="dtrow"><div class="dttxt">${d.dateShort||''} ${d.title}</div></div><div class="tl">`;
+  if(!items.length){h+='<div class="loading-card" style="padding:18px"><div>此天無行程資料</div></div>';}
+  else{
+    items.forEach((it,i)=>{
+      const hX=(it.note&&it.note.trim())||(it.url&&it.url.trim());
+      const xb=hX?`<button class="xbtn" id="xb${idx}${i}" onclick="toggleNote(${idx},${i})"><span class="ar">▶</span> 備注/更多資訊</button>`:'';
+      const xn=hX?`<div class="xnotes" id="xn${idx}${i}">${it.note?`<div class="xntxt">${it.note.replace(/\n/g,'<br>')}</div>`:''}${it.url?`<a class="xlink" href="${it.url}" target="_blank">🔗 開啟網頁 ↗</a>`:''}</div>`:'';
+      h+=`<div class="tlr" style="animation-delay:${i*.04}s"><div class="tlt">${it.time}</div><div class="tld ${it.type}"></div><div class="tlc ${it.type}"><div class="tlm"><div class="tlh"><div class="tln">${it.icon} ${it.name}</div><div class="tltag ${it.type}">${TLAB[it.type]||it.cat}</div></div><div class="tlde">${it.desc}</div>${(it.dur||it.cost)?`<div class="tlmt">${it.dur?`<span>⏱ ${it.dur}</span>`:''}${it.cost?`<span>💴 ${it.cost}</span>`:''}</div>`:''} ${xb}</div>${xn}</div></div>`;
+    });
+  }
+  h+='</div>';setEl('itin-content',h);
+}
 function toggleNote(d,i){document.getElementById(`xn${d}${i}`)?.classList.toggle('show');document.getElementById(`xb${d}${i}`)?.classList.toggle('open');}
 
+// ── 修正4：天氣頁
+// 選框根據天氣頁地點，切換天數時自動對應該天地點
 function renderWxDays(){mkDayBar('wx-days','weather',renderWxDay);}
-function renderWxDay(idx){const d=S.days[idx];if(!d)return;const dayWx=(S.weatherDays[d.dayNum]||[])[0];const pl=dayWx?.place||wxPlaces[0]||'名古屋';const ci=wxPlaces.filter(p=>p!=='目前位置').indexOf(pl);if(ci>=0){curCity=ci;updateCityTabs();}renderWeather();}
-function renderWeather(){const pl=wxPlaces.filter(p=>p!=='目前位置')[curCity]||wxPlaces[0]||'名古屋';const wd=S.weatherData[pl]||S.weatherData['目前位置'];if(!wd){document.getElementById('wx-city').textContent=pl;document.getElementById('wx-temp').textContent='—°';['wx-cond','wx-hl','wx-hum','wx-rain','wx-wind','wx-uv'].forEach(id=>document.getElementById(id).textContent='—');document.getElementById('hourly').innerHTML='';document.getElementById('forecast').innerHTML='';document.getElementById('advice').textContent='天氣資料取得中…';return;}const{coords,data}=wd;const cw=data.current_weather||{},w=wmo(cw.weathercode??0),t=Math.round(cw.temperature??0);const now=new Date(),ts=now.toISOString().split('T')[0];const allT=data.hourly?.time||[],ti=allT.findIndex(x=>x.startsWith(ts));const sl=(a,s,n)=>(a||[]).slice(Math.max(0,s),Math.max(0,s)+n);const hi=Math.round(data.daily?.temperature_2m_max?.[0]??t+3),lo=Math.round(data.daily?.temperature_2m_min?.[0]??t-4),rp=data.daily?.precipitation_probability_max?.[0]??0,spd=Math.round(cw.windspeed??0);const hIdx=ti>=0?ti+now.getHours():0,hm=data.hourly?.relativehumidity_2m?.[hIdx]??0,uv=data.hourly?.uv_index?.[hIdx]??0,uvT=uv<=2?'低':uv<=5?'中等':uv<=7?'高':'極強';document.getElementById('wx-city').textContent=coords.name;document.getElementById('wx-temp').textContent=t+'°';document.getElementById('wx-cond').textContent=w.ic+' '+w.d;document.getElementById('wx-hl').textContent=`最高 ${hi}° · 最低 ${lo}°`;document.getElementById('wx-hum').textContent=hm+'%';document.getElementById('wx-rain').textContent=rp+'%';document.getElementById('wx-wind').textContent=spd+'km/h';document.getElementById('wx-uv').textContent=uvT;document.getElementById('tenki-lnk').href=coords.tenki;document.getElementById('hdr-temp').textContent=t+'°';document.getElementById('hdr-sub').textContent=w.ic+' '+coords.name.split('·')[0].trim();let adv=`目前氣溫 ${t}°，`;if(rp>60)adv+='今日降雨機率高，務必攜帶雨傘！';else if(rp>30)adv+='有機率降雨，建議備用摺疊傘。';else adv+='天氣晴朗舒適。';if(hi-lo>10)adv+=` 早晚溫差大（${lo}°~${hi}°），建議備薄外套。`;if(uvT==='高'||uvT==='極強')adv+=' 紫外線強烈，請做好防曬。';document.getElementById('advice').textContent=adv;const hs=ti>=0?ti+Math.max(0,now.getHours()-1):0;const hT=sl(data.hourly?.temperature_2m,hs,16),hR=sl(data.hourly?.precipitation_probability,hs,16),hTm=sl(allT,hs,16),hW=sl(data.hourly?.weathercode,hs,16);const mn=Math.min(...hT),mx=Math.max(...hT);document.getElementById('hourly').innerHTML=hT.map((v,i)=>{const pct=mx===mn?50:Math.round(((v-mn)/(mx-mn))*72+10);const hr=hTm[i]?new Date(hTm[i]).getHours():(now.getHours()+i)%24;return `<div class="hi"><div class="hitime">${String(hr).padStart(2,'0')}時</div><div class="hiic">${wmo(hW[i]??0).ic}</div><div class="hibw"><div class="hib" style="height:${pct}%"></div></div><div class="hit">${Math.round(v)}°</div><div class="hir">${hR[i]??0}%</div></div>`;}).join('');const dT=data.daily?.time||[],dH=data.daily?.temperature_2m_max||[],dL=data.daily?.temperature_2m_min||[],dR=data.daily?.precipitation_probability_max||[],dW=data.daily?.weathercode||[];const DOW=['日','一','二','三','四','五','六'];document.getElementById('forecast').innerHTML=dT.slice(0,8).map((dt,i)=>{const d2=new Date(dt);return `<div class="fcc"><div class="fcd">${d2.getMonth()+1}/${d2.getDate()}<br>${DOW[d2.getDay()]}</div><div class="fcic">${wmo(dW[i]??0).ic}</div><div class="fchi">${Math.round(dH[i]??0)}°</div><div class="fclo">${Math.round(dL[i]??0)}°</div><div class="fcr">☔${dR[i]??0}%</div></div>`;}).join('');}
-async function locateMe(){const txt=document.getElementById('gps-txt');txt.textContent='定位中…';if(!navigator.geolocation){txt.textContent='不支援定位';return;}navigator.geolocation.getCurrentPosition(async pos=>{txt.textContent='取得天氣中…';try{const{latitude:la,longitude:lo}=pos.coords;const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,relativehumidity_2m,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`)).json();let best='名古屋',md=Infinity;for(const[k,v]of Object.entries(COORDS)){const dd=Math.hypot(v.lat-la,v.lon-lo);if(dd<md){md=dd;best=k;}}S.weatherData['目前位置']={coords:{...resolveC(best),name:'目前位置(GPS)'},data:d};if(!wxPlaces.includes('目前位置')){wxPlaces.unshift('目前位置');buildCityTabs();}curCity=0;updateCityTabs();renderWeather();txt.textContent='📍 目前位置(即時)';toast('📍 已取得即時天氣');}catch(e){txt.textContent='取得失敗';}},()=>{txt.textContent='請允許位置權限';},{timeout:10000,maximumAge:60000});}
+function renderWxDay(idx){
+  const d=S.days[idx];if(!d)return;
+  // 取該天對應地點（天氣頁第一筆）
+  const dayWx=(S.weatherDays[d.dayNum]||[])[0];
+  const pl=dayWx?.place||wxPlaces[0]||'名古屋';
+  const ci=wxPlaces.filter(p=>p!=='目前位置').indexOf(pl);
+  if(ci>=0){curCity=ci;updateCityTabs();}
+  renderWeather();
+}
 
+function renderWeather(){
+  const pl=wxPlaces.filter(p=>p!=='目前位置')[curCity]||wxPlaces[0]||'名古屋';
+  const wd=S.weatherData[pl]||S.weatherData['目前位置'];
+  if(!wd){
+    document.getElementById('wx-city').textContent=pl;
+    document.getElementById('wx-temp').textContent='—°';
+    ['wx-cond','wx-hl','wx-hum','wx-rain','wx-wind','wx-uv'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('hourly').innerHTML='';
+    document.getElementById('forecast').innerHTML='';
+    document.getElementById('advice').textContent='天氣資料取得中…';
+    return;
+  }
+  const{coords,data}=wd;
+  const cw=data.current_weather||{},w=wmo(cw.weathercode??0),t=Math.round(cw.temperature??0);
+  const now=new Date(),ts=now.toISOString().split('T')[0];
+  const allT=data.hourly?.time||[],ti=allT.findIndex(x=>x.startsWith(ts));
+  const sl=(a,s,n)=>(a||[]).slice(Math.max(0,s),Math.max(0,s)+n);
+  const hi=Math.round(data.daily?.temperature_2m_max?.[0]??t+3),lo=Math.round(data.daily?.temperature_2m_min?.[0]??t-4);
+  const rp=data.daily?.precipitation_probability_max?.[0]??0,spd=Math.round(cw.windspeed??0);
+  const hIdx=ti>=0?ti+now.getHours():0,hm=data.hourly?.relativehumidity_2m?.[hIdx]??0;
+  const uv=data.hourly?.uv_index?.[hIdx]??0,uvT=uv<=2?'低':uv<=5?'中等':uv<=7?'高':'極強';
+  document.getElementById('wx-city').textContent=coords.name;
+  document.getElementById('wx-temp').textContent=t+'°';
+  document.getElementById('wx-cond').textContent=w.ic+' '+w.d;
+  document.getElementById('wx-hl').textContent=`最高 ${hi}° · 最低 ${lo}°`;
+  document.getElementById('wx-hum').textContent=hm+'%';
+  document.getElementById('wx-rain').textContent=rp+'%';
+  document.getElementById('wx-wind').textContent=spd+'km/h';
+  document.getElementById('wx-uv').textContent=uvT;
+  document.getElementById('tenki-lnk').href=coords.tenki;
+  document.getElementById('hdr-temp').textContent=t+'°';
+  document.getElementById('hdr-sub').textContent=w.ic+' '+coords.name.split('·')[0].trim();
+  let adv=`目前氣溫 ${t}°，`;
+  if(rp>60)adv+='今日降雨機率高，務必攜帶雨傘！';
+  else if(rp>30)adv+='有機率降雨，建議備用摺疊傘。';
+  else adv+='天氣晴朗舒適。';
+  if(hi-lo>10)adv+=` 早晚溫差大（${lo}°~${hi}°），建議備薄外套。`;
+  if(uvT==='高'||uvT==='極強')adv+=' 紫外線強烈，請做好防曬。';
+  document.getElementById('advice').textContent=adv;
+  const hs=ti>=0?ti+Math.max(0,now.getHours()-1):0;
+  const hT=sl(data.hourly?.temperature_2m,hs,16),hR=sl(data.hourly?.precipitation_probability,hs,16);
+  const hTm=sl(allT,hs,16),hW=sl(data.hourly?.weathercode,hs,16);
+  const mn=Math.min(...hT),mx=Math.max(...hT);
+  document.getElementById('hourly').innerHTML=hT.map((v,i)=>{
+    const pct=mx===mn?50:Math.round(((v-mn)/(mx-mn))*72+10);
+    const hr=hTm[i]?new Date(hTm[i]).getHours():(now.getHours()+i)%24;
+    return `<div class="hi"><div class="hitime">${String(hr).padStart(2,'0')}時</div><div class="hiic">${wmo(hW[i]??0).ic}</div><div class="hibw"><div class="hib" style="height:${pct}%"></div></div><div class="hit">${Math.round(v)}°</div><div class="hir">${hR[i]??0}%</div></div>`;
+  }).join('');
+
+  // 修正4：天氣預報只顯示旅遊期間（從第一天到最後一天）
+  const tripDates=S.days.map(d=>d.date).filter(Boolean);
+  const tripStart=tripDates[0]||'';
+  const tripEnd=tripDates[tripDates.length-1]||'';
+  const dT=data.daily?.time||[],dH=data.daily?.temperature_2m_max||[];
+  const dL=data.daily?.temperature_2m_min||[],dR=data.daily?.precipitation_probability_max||[];
+  const dW=data.daily?.weathercode||[];
+  const DOW=['日','一','二','三','四','五','六'];
+  // 過濾只顯示旅遊期間的日期
+  const filtered=dT.map((dt,i)=>({dt,i})).filter(({dt})=>{
+    if(!tripStart||!tripEnd)return true;
+    return dt>=tripStart.substring(0,10)&&dt<=tripEnd.substring(0,10);
+  });
+  // 若旅遊期間沒有命中，顯示全部
+  const toShow=filtered.length>0?filtered:dT.map((dt,i)=>({dt,i}));
+  document.getElementById('forecast').innerHTML=toShow.map(({dt,i})=>{
+    const d2=new Date(dt);
+    // 找對應天數標記
+    const matchDay=S.days.find(d=>d.date&&d.date.startsWith(dt));
+    const dayLabel=matchDay?`D${matchDay.dayNum}`:'';
+    return `<div class="fcc">
+      ${dayLabel?`<div style="font-size:9px;font-weight:700;color:#c0392b;margin-bottom:1px">${dayLabel}</div>`:''}
+      <div class="fcd">${d2.getMonth()+1}/${d2.getDate()}<br>${DOW[d2.getDay()]}</div>
+      <div class="fcic">${wmo(dW[i]??0).ic}</div>
+      <div class="fchi">${Math.round(dH[i]??0)}°</div>
+      <div class="fclo">${Math.round(dL[i]??0)}°</div>
+      <div class="fcr">☔${dR[i]??0}%</div>
+    </div>`;
+  }).join('');
+}
+
+async function locateMe(){
+  const txt=document.getElementById('gps-txt');txt.textContent='定位中…';
+  if(!navigator.geolocation){txt.textContent='不支援定位';return;}
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    txt.textContent='取得天氣中…';
+    try{
+      const{latitude:la,longitude:lo}=pos.coords;
+      const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,relativehumidity_2m,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`)).json();
+      let best='名古屋',md=Infinity;
+      for(const[k,v]of Object.entries(COORDS)){const dd=Math.hypot(v.lat-la,v.lon-lo);if(dd<md){md=dd;best=k;}}
+      S.weatherData['目前位置']={coords:{...resolveC(best),name:'目前位置(GPS)'},data:d};
+      if(!wxPlaces.includes('目前位置')){wxPlaces.unshift('目前位置');buildCityTabs();}
+      curCity=0;updateCityTabs();renderWeather();
+      txt.textContent='📍 目前位置(即時)';toast('📍 已取得即時天氣');
+    }catch(e){txt.textContent='取得失敗';}
+  },()=>{txt.textContent='請允許位置權限';},{timeout:10000,maximumAge:60000});
+}
+
+// ── 修正5：交通頁 — 顯示所有天的交通，按天分組
 function renderTrDays(){mkDayBar('tr-days','transport',renderTrDay);}
-function renderTrDay(idx){const d=S.days[idx];if(!d)return;const items=(S.itinerary[d.dayNum]||[]).filter(it=>it.type==='transport');let h=`<div class="dtrow"><div class="dttxt">${d.title}</div></div>`;if(!items.length){h+=`<div class="loading-card"><span style="font-size:30px;display:block;margin-bottom:7px">🚃</span><div style="color:#9c8e7e">此天無交通行程</div></div>`;}else{items.forEach(it=>{const pts=it.name.split(/[→➜]|->/).map(s=>s.trim());const from=pts[0]||it.name,to=pts[1]||'';const tF=(it.desc+' '+it.note).match(/(\d{1,2}:\d{2})/g)||[];const depT=it.time||tF[0]||'—',arrT=tF[1]||'—';const noteH=it.note?`<div style="padding:9px 13px;background:#ede6d5;border-top:1px solid #ddd3bc"><div style="font-size:12px;color:#5c5044;line-height:1.75">${it.note.replace(/\n/g,'<br>')}</div></div>`:'';h+=`<div class="trc"><div class="trh"><div class="trrt">${from}${to?' → '+to:''}</div><div class="trtp">${it.cat||'交通'}</div></div>${to?`<div style="display:flex;align-items:center;gap:8px;padding:10px 13px"><div style="text-align:center"><div style="font-size:13px;font-weight:700">${from}</div><div style="font-size:11px;color:#5c5044;margin-top:2px">${depT}</div></div><div style="flex:1;position:relative"><div style="height:2px;background:#6898b0"></div><div style="font-size:10px;color:#9c8e7e;text-align:center;margin-top:2px">${it.dur||''}</div><div style="position:absolute;right:-4px;top:-6px;color:#3d6e8a;font-size:10px">▶</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:700">${to}</div><div style="font-size:11px;color:#5c5044;margin-top:2px">${arrT}</div></div></div>`:''} ${noteH}<div style="display:flex;gap:10px;padding:7px 13px;flex-wrap:wrap;border-top:1px solid #ddd3bc">${it.cost?`<div style="font-size:12px;color:#9c8e7e">票價 <strong style="color:#c0392b">${it.cost}</strong></div>`:''} ${it.desc&&!to?`<div style="font-size:12px;color:#5c5044">${it.desc}</div>`:''}</div>${it.url?`<div style="padding:7px 13px;border-top:1px solid #ddd3bc"><a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#3d6e8a;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.url}" target="_blank">🔗 更多資訊 ↗</a></div>`:''}</div>`;});}h+=`<div style="background:white;border:1px solid #ddd3bc;border-radius:9px;padding:12px;margin-top:3px"><div style="font-size:13px;font-weight:700;margin-bottom:7px">🗂 市內交通選項</div><div style="display:flex;gap:8px;flex-wrap:wrap"><div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#3d6e8a;margin-bottom:2px">🚇 電車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">Suica/Manaca IC卡</div></div><div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#5a7a48;margin-bottom:2px">🚌 公車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">名古屋一日券¥740</div></div><div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#b07830;margin-bottom:2px">🚕 計程車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">起步¥730</div></div></div></div>`;setEl('tr-content',h);}
+function renderTrDay(idx){
+  const d=S.days[idx];if(!d)return;
+  // 只取分類為「交通」的行程
+  const items=(S.itinerary[d.dayNum]||[]).filter(it=>it.type==='transport');
+  let h=`<div class="dtrow"><div class="dttxt">${d.dateShort||''} ${d.title}</div></div>`;
+  if(!items.length){
+    h+=`<div class="loading-card"><span style="font-size:30px;display:block;margin-bottom:7px">🚃</span><div style="color:#9c8e7e">此天無交通行程</div></div>`;
+  }else{
+    items.forEach(it=>{
+      const pts=it.name.split(/[→➜]|->/).map(s=>s.trim());
+      const from=pts[0]||it.name,to=pts[1]||'';
+      const tF=(it.desc+' '+it.note).match(/(\d{1,2}:\d{2})/g)||[];
+      const depT=it.time||tF[0]||'—',arrT=tF[1]||'—';
+      const noteH=it.note?`<div style="padding:9px 13px;background:#ede6d5;border-top:1px solid #ddd3bc"><div style="font-size:12px;color:#5c5044;line-height:1.75">${it.note.replace(/\n/g,'<br>')}</div></div>`:'';
+      h+=`<div class="trc">
+        <div class="trh">
+          <div class="trrt">${from}${to?' → '+to:''}</div>
+          <div class="trtp">${it.cat||'交通'}</div>
+        </div>
+        ${to?`<div style="display:flex;align-items:center;gap:8px;padding:10px 13px">
+          <div style="text-align:center;flex:1">
+            <div style="font-size:13px;font-weight:700">${from}</div>
+            <div style="font-size:11px;color:#5c5044;margin-top:2px">${depT}</div>
+          </div>
+          <div style="flex:2;position:relative;padding:0 8px">
+            <div style="height:2px;background:#6898b0"></div>
+            <div style="font-size:10px;color:#9c8e7e;text-align:center;margin-top:3px">${it.dur||''}</div>
+            <div style="position:absolute;right:4px;top:-7px;color:#3d6e8a;font-size:11px">▶</div>
+          </div>
+          <div style="text-align:center;flex:1">
+            <div style="font-size:13px;font-weight:700">${to}</div>
+            <div style="font-size:11px;color:#5c5044;margin-top:2px">${arrT}</div>
+          </div>
+        </div>`:it.desc?`<div style="padding:9px 13px;font-size:12px;color:#5c5044">${it.desc}</div>`:''}
+        ${noteH}
+        <div style="display:flex;gap:10px;padding:7px 13px;flex-wrap:wrap;border-top:1px solid #ddd3bc">
+          ${it.cost?`<div style="font-size:12px;color:#9c8e7e">票價 <strong style="color:#c0392b">${it.cost}</strong></div>`:''}
+        </div>
+        ${it.url?`<div style="padding:7px 13px;border-top:1px solid #ddd3bc"><a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#3d6e8a;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.url}" target="_blank">🔗 更多資訊 ↗</a></div>`:''}
+      </div>`;
+    });
+  }
+  // 市內交通選項提示
+  h+=`<div style="background:white;border:1px solid #ddd3bc;border-radius:9px;padding:12px;margin-top:10px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:7px">🗂 市內交通選項</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#3d6e8a;margin-bottom:2px">🚇 電車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">Suica/Manaca IC卡</div></div>
+      <div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#5a7a48;margin-bottom:2px">🚌 公車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">名古屋一日券¥740</div></div>
+      <div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#b07830;margin-bottom:2px">🚕 計程車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">起步¥730</div></div>
+    </div>
+  </div>`;
+  setEl('tr-content',h);
+}
 
+// ── UTIL
 function showSec(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function bnAct(el){document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
 function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
 function setSS(type,msg){document.getElementById('sync-dot').className='sync-dot'+(type==='loading'?' loading':type==='ok'?' ok':type==='err'?' err':'');document.getElementById('sync-msg').textContent=msg;}
 function setEl(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
-function showErr(id,msg){setEl(id,`<div class="error-card"><div class="err-ttl">⚠️ 載入失敗</div><div class="err-txt">${msg}</div><div class="err-hint">請確認：試算表已設為「任何人可以檢視」，且分頁名稱為「主題」「行程」「天氣」</div></div>`);}
+function showErr(id,msg){setEl(id,`<div class="error-card"><div class="err-ttl">⚠️ 載入失敗</div><div class="err-txt">${msg}</div><div class="err-hint">請確認試算表已設為「任何人可以檢視」，分頁名稱為「主題」「行程」「天氣」</div></div>`);}
 
 document.querySelector('.sync-btn-sm').textContent='↺ 重新整理';
 document.querySelector('.sync-btn-sm').onclick=loadAll;
 
 loadAll();
 setInterval(loadAll,5*60*1000);
+</script>
+
+<!-- 天氣頁：修正4 把「天氣預報」標題改為「天氣預報」-->
+<script>
+// 等 DOM 載入後替換天氣預報標題
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.sec-ttl').forEach(el=>{
+    if(el.textContent.includes('天氣預報'))el.textContent='天氣預報';
+  });
+});
 </script>
 </body>
 </html>
