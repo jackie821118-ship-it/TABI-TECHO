@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>日本旅遊手帳</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --wa:#f5f0e6;--wa2:#ede6d5;--wa3:#ddd3bc;
+  --su:#2e2720;--su2:#5c5044;--su3:#9c8e7e;
+  --aka:#c0392b;--aka2:#e06050;
+  --kin:#b07830;--kin2:#d4a05a;
+  --ai:#3d6e8a;--ai2:#6898b0;
+  --mg:#5a7a48;--mg2:#8aaa72;
+  --fuji:#806898;
+  --sh:rgba(46,39,32,.10);
+  --xs:11px;--sm:13px;--md:15px;--lg:17px;--xl:20px;--xxl:24px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans TC',sans-serif;font-size:var(--md);background:var(--wa);color:var(--su);min-height:100vh;max-width:430px;margin:0 auto;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(160,140,100,.05) 23px,rgba(160,140,100,.05) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(160,140,100,.03) 23px,rgba(160,140,100,.03) 24px)}
+
+/* seigaiha */
+.sgb{height:10px;background:var(--aka);position:relative;overflow:hidden}
+.sgb::before{content:'';position:absolute;top:-5px;left:0;right:0;height:20px;background:radial-gradient(circle at 50% 100%,transparent 8px,var(--aka) 8px,var(--aka) 10px,transparent 10px) -10px 0/20px 10px,radial-gradient(circle at 50% 100%,transparent 8px,var(--kin) 8px,var(--kin) 10px,transparent 10px) 0 5px/20px 10px;background-color:var(--aka)}
+
+/* HEADER */
+.hdr{background:linear-gradient(155deg,#f0e8d4,#e4d9c0 60%,#d8ccb0);padding:16px 16px 12px;position:relative;overflow:hidden;border-bottom:2px solid var(--wa3)}
+.hdr-k{position:absolute;right:4px;top:-6px;font-family:'Shippori Mincho',serif;font-size:86px;font-weight:700;line-height:1;color:var(--kin);opacity:.08;writing-mode:vertical-rl;letter-spacing:-10px;pointer-events:none;user-select:none}
+.hdr-row{display:flex;align-items:center;gap:11px}
+.hdr-mon{width:38px;height:38px;border-radius:50%;border:2px solid var(--kin);display:flex;align-items:center;justify-content:center;font-size:19px;background:rgba(255,255,255,.4);flex-shrink:0}
+.hdr-info{flex:1;min-width:0}
+.trip-lbl{font-size:var(--xs);letter-spacing:4px;color:var(--aka);font-weight:700;margin-bottom:3px;text-transform:uppercase}
+.trip-ttl{font-family:'Shippori Mincho',serif;font-size:22px;font-weight:600;color:var(--su);line-height:1.2;letter-spacing:1px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trip-dt{font-size:var(--sm);color:var(--su2);margin-top:3px}
+.wx-chip{background:var(--ai);color:white;border-radius:9px;padding:8px 11px;text-align:center;flex-shrink:0;min-width:62px;cursor:pointer;transition:opacity .2s}
+.wx-chip:hover{opacity:.9}
+.wx-chip-t{font-family:'Shippori Mincho',serif;font-size:22px;font-weight:400;line-height:1}
+.wx-chip-s{font-size:9px;color:rgba(255,255,255,.8);margin-top:3px;line-height:1.3}
+
+/* SECTIONS */
+.section{display:none;padding:14px 14px 100px}
+.section.active{display:block}
+.sec-ttl{font-family:'Shippori Mincho',serif;font-size:var(--xl);font-weight:600;color:var(--su);margin-bottom:13px;display:flex;align-items:center;gap:8px;letter-spacing:.5px}
+.sec-ttl::before{content:'';width:4px;height:15px;background:var(--aka);border-radius:2px;flex-shrink:0}
+.sec-ttl::after{content:'';flex:1;height:1px;background:var(--wa3)}
+
+/* DAY CHIPS */
+.daybar{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:11px}
+.daybar::-webkit-scrollbar{display:none}
+.dc{flex-shrink:0;min-width:54px;padding:7px 9px;border-radius:6px;border:1.5px solid var(--wa3);background:white;cursor:pointer;text-align:center;transition:all .2s}
+.dc .dn{font-family:'Shippori Mincho',serif;font-size:18px;font-weight:600;display:block;line-height:1}
+.dc .dl{font-size:10px;color:var(--su3);margin-top:2px}
+.dc.on{background:var(--aka);border-color:var(--aka);color:white}
+.dc.on .dl{color:rgba(255,255,255,.7)}
+
+/* TIMELINE */
+.dtrow{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.dttxt{font-family:'Shippori Mincho',serif;font-size:var(--xl);font-weight:600;color:var(--su);flex:1;letter-spacing:.5px}
+.tl{position:relative}
+.tl::before{content:'';position:absolute;left:43px;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,var(--wa3) 6%,var(--wa3) 94%,transparent)}
+.tlr{display:flex;gap:10px;margin-bottom:11px;animation:fadeUp .3s ease both}
+.tlt{width:43px;font-family:'Shippori Mincho',serif;font-size:11px;color:var(--su3);text-align:right;padding-top:14px;flex-shrink:0}
+.tld{width:9px;height:9px;border-radius:50%;border:2px solid var(--wa3);background:var(--wa);flex-shrink:0;margin-top:16px;position:relative;z-index:1}
+.tld.sight{border-color:var(--kin);background:#fdf4e0}
+.tld.food{border-color:var(--aka);background:#fde8e4}
+.tld.transport{border-color:var(--ai);background:#e4eff7}
+.tld.shopping{border-color:var(--mg);background:#eaf4e4}
+.tlc{flex:1;background:white;border-radius:7px;border:1px solid var(--wa3);box-shadow:0 2px 6px var(--sh);overflow:hidden;position:relative}
+.tlc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.tlc.sight::before{background:var(--kin)}.tlc.food::before{background:var(--aka)}.tlc.transport::before{background:var(--ai)}.tlc.shopping::before{background:var(--mg)}
+.tlm{padding:11px 12px}
+.tlh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px}
+.tln{font-size:var(--md);font-weight:700;color:var(--su);line-height:1.3}
+.tltag{font-size:var(--xs);padding:2px 7px;border-radius:3px;font-weight:700;flex-shrink:0;margin-left:5px}
+.tltag.sight{background:#fdf4e0;color:var(--kin)}.tltag.food{background:#fde8e4;color:var(--aka)}.tltag.transport{background:#e4eff7;color:var(--ai)}.tltag.shopping{background:#eaf4e4;color:var(--mg)}
+.tlde{font-size:var(--sm);color:var(--su2);line-height:1.6;margin-bottom:6px}
+.tlmt{display:flex;gap:10px}
+.tlmt span{font-size:var(--sm);color:var(--su3)}
+.xbtn{display:flex;align-items:center;gap:3px;font-size:var(--xs);color:var(--ai);margin-top:6px;cursor:pointer;font-weight:600;border:none;background:none;padding:0;font-family:'Noto Sans TC',sans-serif}
+.xbtn .ar{font-size:9px;transition:transform .25s;display:inline-block}
+.xbtn.open .ar{transform:rotate(90deg)}
+.xnotes{display:none;padding:9px 12px 11px;border-top:1px dashed var(--wa3);background:var(--wa)}
+.xnotes.show{display:block}
+.xntxt{font-size:var(--sm);color:var(--su2);line-height:1.75;margin-bottom:7px}
+.xlink{display:inline-flex;align-items:center;gap:4px;font-size:var(--sm);color:white;background:var(--ai);padding:6px 12px;border-radius:5px;text-decoration:none;font-weight:600}
+
+/* WEATHER */
+.city-tabs{display:flex;gap:0;margin-bottom:13px;border:1.5px solid var(--wa3);border-radius:7px;overflow:hidden;background:var(--wa2)}
+.ctab{flex:1;padding:9px 3px;font-size:var(--sm);font-weight:600;border:none;background:none;cursor:pointer;color:var(--su3);transition:all .2s;text-align:center;font-family:'Noto Sans TC',sans-serif}
+.ctab.on{background:var(--ai);color:white}
+.wx-hero{border-radius:9px;padding:17px;margin-bottom:13px;background:linear-gradient(135deg,#2d5a7a,#3d7a9a 55%,#2a5570);color:white;position:relative;overflow:hidden}
+.wxcity{font-size:var(--xs);letter-spacing:3px;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:2px}
+.wxrow{display:flex;align-items:flex-end;gap:11px;margin-bottom:9px}
+.wxtemp{font-family:'Shippori Mincho',serif;font-size:64px;font-weight:400;line-height:1}
+.wxcond{font-size:var(--md);color:rgba(255,255,255,.9)}
+.wxhl{font-size:var(--sm);color:rgba(255,255,255,.65);margin-top:3px}
+.wxsts{display:flex;gap:15px;padding-top:9px;border-top:1px solid rgba(255,255,255,.15);flex-wrap:wrap}
+.wxst{font-size:var(--sm);color:rgba(255,255,255,.6)}
+.wxst strong{display:block;font-size:var(--lg);font-weight:300;color:white;margin-top:2px}
+.gps-tag{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);border-radius:5px;padding:3px 8px;font-size:var(--xs);color:rgba(255,255,255,.8);margin-bottom:6px;cursor:pointer}
+.hw{background:white;border:1px solid var(--wa3);border-radius:9px;margin-bottom:13px;overflow:hidden}
+.hwhdr{font-size:var(--sm);font-weight:700;color:var(--su2);padding:11px 12px 9px;border-bottom:1px solid var(--wa3)}
+.hscr{display:flex;overflow-x:auto;scrollbar-width:none;padding:9px 11px 11px}
+.hscr::-webkit-scrollbar{display:none}
+.hi{flex-shrink:0;text-align:center;min-width:48px;padding:0 3px}
+.hitime{font-size:var(--xs);color:var(--su3);margin-bottom:4px}
+.hiic{font-size:17px;margin-bottom:3px}
+.hibw{height:26px;display:flex;align-items:flex-end;justify-content:center;margin:3px 0}
+.hib{width:5px;border-radius:3px 3px 0 0;background:linear-gradient(to top,var(--ai),var(--aka2));min-height:3px}
+.hit{font-family:'Shippori Mincho',serif;font-size:var(--sm);font-weight:600;color:var(--su)}
+.hir{font-size:var(--xs);color:var(--ai);margin-top:1px}
+.fcscr{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin-bottom:13px}
+.fcscr::-webkit-scrollbar{display:none}
+.fcc{flex-shrink:0;background:white;border:1px solid var(--wa3);border-radius:7px;padding:10px 8px;text-align:center;min-width:64px}
+.fcd{font-size:var(--sm);color:var(--su3);margin-bottom:5px;font-weight:600}
+.fcic{font-size:21px;margin-bottom:3px}
+.fchi{font-size:var(--sm);font-weight:700;color:var(--aka)}
+.fclo{font-size:var(--sm);color:var(--ai);margin-top:1px}
+.fcr{font-size:var(--xs);color:var(--ai2);margin-top:2px}
+.adv-card{background:linear-gradient(135deg,#fdf5e6,#f8ecd6);border:1px solid #e8d8a8;border-radius:9px;padding:12px 14px;margin-bottom:13px}
+.adv-txt{font-size:var(--sm);color:var(--su2);line-height:1.75}
+.wxsrc{font-size:var(--xs);color:var(--su3);text-align:right;margin:-5px 0 13px;display:flex;align-items:center;justify-content:flex-end;gap:4px}
+.wxsrc a{color:var(--ai);text-decoration:none;font-weight:600}
+
+/* TRANSPORT */
+.trc{background:white;border:1px solid var(--wa3);border-radius:9px;margin-bottom:11px;overflow:hidden;box-shadow:0 2px 6px var(--sh)}
+.trh{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--wa3);background:linear-gradient(90deg,var(--ai),#3a6a88);color:white}
+.trrt{font-size:var(--lg);font-weight:700}
+.trtp{font-size:var(--xs);background:rgba(255,255,255,.2);padding:2px 8px;border-radius:9px;font-weight:600}
+.trtl{display:flex;align-items:center;gap:8px;padding:11px 14px}
+.trsta{text-align:center}
+.trstanm{font-size:var(--md);font-weight:700}
+.trstati{font-size:var(--sm);color:var(--su2);margin-top:2px;font-family:'Shippori Mincho',serif}
+.trln{flex:1;position:relative}
+.trtr{height:2px;background:var(--ai2)}
+.trdu{font-size:var(--xs);color:var(--su3);text-align:center;margin-top:3px}
+.trar{position:absolute;right:-4px;top:-6px;color:var(--ai);font-size:10px}
+.schw{background:var(--wa2);border-top:1px solid var(--wa3)}
+.schl{font-size:var(--xs);color:var(--su3);font-weight:700;letter-spacing:1px;padding:7px 14px 3px;text-transform:uppercase}
+.schr{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-top:1px dashed var(--wa3);font-size:var(--sm)}
+.schr.main{background:rgba(61,110,138,.08);font-weight:700}
+.scht{font-family:'Shippori Mincho',serif;font-size:var(--md);color:var(--su);min-width:42px}
+.scha{font-family:'Shippori Mincho',serif;font-size:var(--md);color:var(--su);min-width:42px;text-align:right}
+.schk{font-size:var(--xs);padding:2px 7px;border-radius:4px;background:var(--ai2);color:white;font-weight:600;flex:1;text-align:center;margin:0 7px}
+.schb{font-size:var(--xs);color:var(--kin);font-weight:700;min-width:34px;text-align:right}
+.trft{display:flex;gap:12px;padding:8px 14px;flex-wrap:wrap;border-top:1px solid var(--wa3)}
+.trf{font-size:var(--sm);color:var(--su3)}
+.trf strong{color:var(--su);font-weight:700}
+.trf .red{color:var(--aka);font-weight:700}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(245,240,230,.97);border-top:1.5px solid var(--wa3);padding:7px 0 20px;z-index:200;backdrop-filter:blur(10px);display:flex;justify-content:space-around}
+.bn{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--wa3);font-size:var(--xs);font-family:'Noto Sans TC',sans-serif;padding:5px 12px;transition:color .2s;font-weight:600}
+.bn.on{color:var(--aka)}
+.bnic{font-size:23px;line-height:1}
+
+/* LOADING / ERROR states */
+.loading-card{text-align:center;padding:40px 20px;color:var(--su3)}
+.loading-icon{font-size:36px;margin-bottom:10px;animation:spin 1s linear infinite;display:block}
+.loading-txt{font-size:var(--md)}
+.error-card{background:#fde8e4;border:1px solid var(--aka2);border-radius:9px;padding:14px 16px;margin-bottom:14px}
+.error-ttl{font-size:var(--md);font-weight:700;color:var(--aka);margin-bottom:6px}
+.error-txt{font-size:var(--sm);color:var(--su2);line-height:1.65}
+.error-hint{font-size:var(--xs);color:var(--su3);margin-top:8px;line-height:1.65;background:var(--wa2);border-radius:6px;padding:8px 10px}
+.sync-bar{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;background:var(--wa2);border-bottom:1px solid var(--wa3);font-size:var(--xs);color:var(--su3)}
+.sync-time{display:flex;align-items:center;gap:4px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--mg);flex-shrink:0}
+.sync-dot.loading{background:var(--kin);animation:pulse .8s ease infinite}
+.sync-dot.error{background:var(--aka)}
+.sync-btn-sm{background:none;border:1px solid var(--wa3);border-radius:4px;padding:3px 8px;font-size:var(--xs);color:var(--su3);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-weight:600;transition:all .15s}
+.sync-btn-sm:hover{border-color:var(--ai);color:var(--ai)}
+
+/* TOAST */
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:var(--su);color:var(--wa);font-size:var(--sm);padding:8px 17px;border-radius:17px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;font-weight:600}
+.toast.show{opacity:1}
+
+/* MODAL */
+.mbg{position:fixed;inset:0;background:rgba(46,39,32,.55);z-index:500;display:none;align-items:flex-end;backdrop-filter:blur(4px)}
+.mbg.open{display:flex}
+.modal{background:var(--wa);border-radius:14px 14px 0 0;width:100%;max-width:430px;margin:0 auto;padding:19px 17px 42px;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-height:85vh;overflow-y:auto}
+.mbg.open .modal{transform:translateY(0)}
+.mpip{width:33px;height:4px;background:var(--wa3);border-radius:2px;margin:0 auto 17px}
+.mttl{font-family:'Shippori Mincho',serif;font-size:var(--xl);font-weight:600;margin-bottom:14px;color:var(--su)}
+.fg{margin-bottom:12px}
+.fl{font-size:var(--xs);letter-spacing:1.5px;color:var(--su3);text-transform:uppercase;margin-bottom:5px;display:block;font-weight:700}
+.fi{width:100%;padding:9px 11px;border:1.5px solid var(--wa3);border-radius:7px;font-size:var(--md);font-family:'Noto Sans TC',sans-serif;background:white;color:var(--su);outline:none}
+.fi:focus{border-color:var(--ai)}
+.bpri{width:100%;background:var(--su);color:var(--wa);border:none;border-radius:7px;padding:12px;font-size:var(--md);font-family:'Noto Sans TC',sans-serif;font-weight:700;cursor:pointer;margin-top:14px}
+
+.infob{background:#fdf5de;border:1px solid #e8d080;border-radius:7px;padding:11px 13px;font-size:var(--sm);color:#7a6010;margin-bottom:13px;line-height:1.65;display:flex;gap:7px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.6}}
+</style>
+</head>
+<body>
+<div class="sgb"></div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-k">旅</div>
+  <div class="hdr-row">
+    <div class="hdr-mon">⛩</div>
+    <div class="hdr-info">
+      <div class="trip-lbl">✦ 旅遊手帳 TABI TECHO</div>
+      <div class="trip-ttl" id="ttl-txt">載入中…</div>
+      <div class="trip-dt" id="dt-txt">—</div>
+    </div>
+    <div class="wx-chip" onclick="showSec('weather');bnAct(document.querySelector('.bn:nth-child(2)'))">
+      <div class="wx-chip-t" id="hdr-temp">—°</div>
+      <div class="wx-chip-s" id="hdr-sub">天氣</div>
+    </div>
+  </div>
+</div>
+
+<!-- sync status bar -->
+<div class="sync-bar">
+  <div class="sync-time"><div class="sync-dot" id="sync-dot"></div><span id="sync-msg">尚未同步</span></div>
+  <button class="sync-btn-sm" onclick="loadAll()">↺ 重新整理</button>
+</div>
+
+<!-- ITINERARY -->
+<div class="section active" id="itinerary">
+  <div class="daybar" id="itin-days"></div>
+  <div id="itin-content"><div class="loading-card"><span class="loading-icon">⏳</span><div class="loading-txt">從 Google Sheets 載入行程中…</div></div></div>
+</div>
+
+<!-- WEATHER -->
+<div class="section" id="weather">
+  <div class="daybar" id="wx-days"></div>
+  <div class="city-tabs" id="city-tabs">
+    <!-- rendered by JS from sheet data -->
+  </div>
+  <div class="wx-hero">
+    <div class="gps-tag" id="gps-tag" onclick="locateMe()">📍 <span id="gps-txt">點擊取得目前位置天氣</span></div>
+    <div class="wxcity" id="wx-city">—</div>
+    <div class="wxrow">
+      <div class="wxtemp" id="wx-temp">—°</div>
+      <div style="padding-bottom:7px">
+        <div class="wxcond" id="wx-cond">—</div>
+        <div class="wxhl" id="wx-hl">—</div>
+      </div>
+    </div>
+    <div class="wxsts">
+      <div class="wxst">濕度<strong id="wx-hum">—</strong></div>
+      <div class="wxst">降雨<strong id="wx-rain">—</strong></div>
+      <div class="wxst">風速<strong id="wx-wind">—</strong></div>
+      <div class="wxst">紫外線<strong id="wx-uv">—</strong></div>
+    </div>
+  </div>
+  <div class="wxsrc">資料來源：<a href="https://tenki.jp" target="_blank" id="tenki-lnk">tenki.jp ↗</a> · Open-Meteo</div>
+  <div class="hw">
+    <div class="hwhdr">🕐 每小時氣溫預報</div>
+    <div class="hscr" id="hourly"></div>
+  </div>
+  <div class="sec-ttl">8日天氣預報</div>
+  <div class="fcscr" id="forecast"></div>
+  <div class="sec-ttl">穿衣建議</div>
+  <div class="adv-card"><div class="adv-txt" id="advice">—</div></div>
+</div>
+
+<!-- TRANSPORT -->
+<div class="section" id="transport">
+  <div class="daybar" id="tr-days"></div>
+  <div id="tr-content"><div class="loading-card"><span class="loading-icon">⏳</span><div class="loading-txt">從 Google Sheets 載入交通資訊中…</div></div></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- BOTTOM NAV (3 items only) -->
+<div class="bnav">
+  <button class="bn on" onclick="showSec('itinerary');bnAct(this)"><span class="bnic">📅</span>行程</button>
+  <button class="bn" onclick="showSec('weather');bnAct(this)"><span class="bnic">🌤</span>天氣</button>
+  <button class="bn" onclick="showSec('transport');bnAct(this)"><span class="bnic">🚅</span>交通</button>
+</div>
+
+
+
+<script>
+const SHEET_ID='1bOCgGEbMbJr_B771DvL6iFqX0fLPivfCA_4ma6aq2T4';
+const TLAB={sight:'景點',food:'餐飲',transport:'交通',shopping:'購物'};
+let S={trip:{title:'—',dates:'—'},days:[],itinerary:{},weatherDays:{},weatherData:{}};
+let curDay={itin:0,transport:0,weather:0},curCity=0,wxPlaces=[];
+
+// gviz CSV — GitHub Pages(https)環境直接 fetch，無 CORS 問題
+function csvUrl(s){return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(s)}`;}
+
+function parseCSV(text){
+  return text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim()).map(line=>{
+    const cells=[];let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+      else if(ch===','&&!inQ){cells.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    cells.push(cur.trim());return cells;
+  });
+}
+
+async function fetchSheet(name){
+  const r=await fetch(csvUrl(name),{cache:'no-cache'});
+  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  const t=await r.text();
+  if(!t.trim())throw new Error('空回應');
+  return parseCSV(t);
+}
+
+async function loadAll(){
+  setSS('loading','同步中…');
+  setEl('itin-content','<div class="loading-card"><span style="font-size:28px;display:block;margin-bottom:8px">⏳</span><div>從 Google Sheets 載入中…</div></div>');
+  const[thR,itR,wxR]=await Promise.allSettled([fetchSheet('主題'),fetchSheet('行程'),fetchSheet('天氣')]);
+  if(thR.status==='fulfilled')parseTheme(thR.value);
+  else console.warn('主題:',thR.reason?.message);
+  if(itR.status==='fulfilled')parseItinerary(itR.value);
+  else showErr('itin-content','行程載入失敗：'+(itR.reason?.message||''));
+  if(wxR.status==='fulfilled')parseWeatherSheet(wxR.value);
+  else console.warn('天氣:',wxR.reason?.message);
+  await fetchAllWeather();
+  renderHeader();buildCityTabs();
+  renderItinDays();renderItinDay(0);
+  renderWxDays();renderWxDay(0);
+  renderTrDays();renderTrDay(0);
+  const now=new Date();
+  setSS('ok','已更新 '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));
+  toast(S.days.length>0?'✓ 資料已更新':'⚠ 未讀到資料，請確認試算表公開設定');
+}
+
+// 主題: row[0]=[旅遊主題,愛知…] row[1]=[旅遊時間,2026…] row[2]=欄位標題 row[3+]=每日資料
+function parseTheme(rows){
+  if(!rows||rows.length<4)return;
+  S.trip.title=(rows[0]?.[1]||'').trim()||'旅遊手帳';
+  S.trip.dates=(rows[1]?.[1]||'').trim();
+  S.days=[];
+  for(let i=3;i<rows.length;i++){
+    const r=rows[i],dayNum=parseInt(r[0]);
+    if(isNaN(dayNum)||dayNum<1)continue;
+    S.days.push({dayNum,date:(r[1]||'').trim(),title:(r[2]||'').trim()||`Day ${dayNum}`});
+  }
+  S.days.sort((a,b)=>a.dayNum-b.dayNum);
+  console.log('主題:',S.trip,'天數:',S.days.length);
+}
+
+// 行程: row[0]=欄位名 row[1+]=資料
+function parseItinerary(rows){
+  if(!rows||rows.length<2)return;
+  S.itinerary={};
+  const hdr=rows[0];
+  const fi=(...keys)=>{for(const k of keys){const i=hdr.findIndex(h=>h===k||h.includes(k));if(i>=0)return i;}return -1;};
+  const cDay=fi('Day','day','天');
+  const tAll=hdr.reduce((a,h,i)=>{if(h==='時間')a.push(i);return a;},[]);
+  const cTime=tAll[0]??1,cDur=tAll[1]??5;
+  const cName=fi('標題','名稱'),cCat=fi('分類','類型'),cDesc=fi('說明','描述');
+  const cCost=fi('費用'),cNote=fi('備註','備注'),cUrl=fi('網頁','連結');
+  const fc=(r,c,fb)=>String(r[c>=0?c:fb]??'').trim();
+  console.log('行程欄位:',hdr);
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i],dayNum=parseInt(fc(r,cDay,0));
+    if(isNaN(dayNum)||dayNum<1)continue;
+    if(!S.itinerary[dayNum])S.itinerary[dayNum]=[];
+    const cat=fc(r,cCat,3),name=fc(r,cName,2);
+    if(!name)continue;
+    const type=mapCat(cat);
+    S.itinerary[dayNum].push({time:fc(r,cTime,1),type,icon:typeIcon(type),name,cat,desc:fc(r,cDesc,4),dur:fc(r,cDur,5),cost:fc(r,cCost,6),note:fc(r,cNote,7),url:fc(r,cUrl,8)});
+  }
+  console.log('行程:',Object.values(S.itinerary).flat().length,'筆');
+}
+
+// 天氣: row[0]=欄位名 row[1+]=資料
+function parseWeatherSheet(rows){
+  if(!rows||rows.length<2)return;
+  S.weatherDays={};
+  const hdr=rows[0];
+  const fi=(...keys)=>{for(const k of keys){const i=hdr.findIndex(h=>h===k||h.includes(k));if(i>=0)return i;}return -1;};
+  const cDay=fi('Day','day','天'),cTime=fi('時間'),cPlc=fi('地點','城市');
+  const fc=(r,c,fb)=>String(r[c>=0?c:fb]??'').trim();
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i],dayNum=parseInt(fc(r,cDay,0));
+    if(isNaN(dayNum)||dayNum<1)continue;
+    const place=fc(r,cPlc,2);if(!place)continue;
+    if(!S.weatherDays[dayNum])S.weatherDays[dayNum]=[];
+    S.weatherDays[dayNum].push({time:fc(r,cTime,1),place});
+  }
+  const seen=new Set();wxPlaces=[];
+  for(const arr of Object.values(S.weatherDays))for(const d of arr)if(d.place&&!seen.has(d.place)){seen.add(d.place);wxPlaces.push(d.place);}
+  if(!wxPlaces.length)wxPlaces=['名古屋'];
+  console.log('天氣地點:',wxPlaces);
+}
+
+function mapCat(c){const s=(c||'').toLowerCase();if(s.includes('餐')||s.includes('食')||s.includes('飲'))return'food';if(s.includes('交通')||s.includes('車')||s.includes('機')||s.includes('船'))return'transport';if(s.includes('購')||s.includes('買'))return'shopping';return'sight';}
+function typeIcon(t){return{sight:'⛩',food:'🍜',transport:'🚅',shopping:'🛍'}[t]||'📍';}
+
+const COORDS={'名古屋':{lat:35.1815,lon:136.9066,name:'名古屋·NAGOYA',tenki:'https://tenki.jp/forecast/5/26/5110/23100/'},'愛知':{lat:35.1802,lon:136.9066,name:'愛知縣',tenki:'https://tenki.jp/forecast/5/26/5110/23100/'},'三重':{lat:34.7303,lon:136.5086,name:'三重縣',tenki:'https://tenki.jp/forecast/5/27/5410/24202/'},'伊勢':{lat:34.4884,lon:136.7076,name:'伊勢',tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},'志摩':{lat:34.3273,lon:136.8312,name:'志摩',tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},'鳥羽':{lat:34.4849,lon:136.8437,name:'鳥羽',tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},'松阪':{lat:34.5789,lon:136.5274,name:'松阪',tenki:'https://tenki.jp/forecast/5/27/5410/24205/'},'滋賀':{lat:35.0045,lon:135.8686,name:'滋賀縣',tenki:'https://tenki.jp/forecast/6/29/6000/25201/'},'彦根':{lat:35.2752,lon:136.2636,name:'彦根',tenki:'https://tenki.jp/forecast/6/29/6000/25202/'},'近江八幡':{lat:35.1284,lon:136.0985,name:'近江八幡',tenki:'https://tenki.jp/forecast/6/29/6000/25208/'},'琵琶湖':{lat:35.2958,lon:136.1253,name:'琵琶湖周邊',tenki:'https://tenki.jp/forecast/6/29/6000/25201/'},'京都':{lat:35.0116,lon:135.7681,name:'京都·KYOTO',tenki:'https://tenki.jp/forecast/6/30/6100/26100/'},'大阪':{lat:34.6937,lon:135.5022,name:'大阪·OSAKA',tenki:'https://tenki.jp/forecast/6/30/6200/27100/'},'奈良':{lat:34.6851,lon:135.8048,name:'奈良·NARA',tenki:'https://tenki.jp/forecast/6/30/6300/29201/'},'東京':{lat:35.6762,lon:139.6503,name:'東京·TOKYO',tenki:'https://tenki.jp/forecast/3/16/4410/13101/'},'中部機場':{lat:34.8583,lon:136.8050,name:'中部機場',tenki:'https://tenki.jp/forecast/5/26/5110/23234/'}};
+function resolveC(p){if(COORDS[p])return COORDS[p];for(const[k,v]of Object.entries(COORDS)){if(p.includes(k)||k.includes(p))return v;}return COORDS['名古屋'];}
+function wmo(c){if(c===0)return{ic:'☀️',d:'晴天'};if(c<=2)return{ic:'🌤',d:'部分多雲'};if(c===3)return{ic:'☁️',d:'多雲'};if(c<=49)return{ic:'🌫',d:'霧'};if(c<=59)return{ic:'🌦',d:'毛毛雨'};if(c<=69)return{ic:'🌧',d:'雨'};if(c<=79)return{ic:'🌨',d:'雪'};if(c<=84)return{ic:'🌧',d:'陣雨'};if(c<=99)return{ic:'⛈',d:'雷暴'};return{ic:'🌡',d:'—'};}
+async function fetchWx(place){const c=resolveC(place);const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,relativehumidity_2m,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`);if(!r.ok)throw new Error('wx');return{coords:c,data:await r.json()};}
+async function fetchAllWeather(){S.weatherData={};await Promise.allSettled(wxPlaces.map(async p=>{try{S.weatherData[p]=await fetchWx(p);}catch(e){}}));if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>gpsWx(p.coords.latitude,p.coords.longitude),()=>{},{timeout:8000,maximumAge:300000});}
+async function gpsWx(la,lo){try{const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`)).json();let best='名古屋',md=Infinity;for(const[k,v]of Object.entries(COORDS)){const dd=Math.hypot(v.lat-la,v.lon-lo);if(dd<md){md=dd;best=k;}}S.weatherData['目前位置']={coords:{...resolveC(best),name:'目前位置(GPS)'},data:d};const t=Math.round(d.current_weather?.temperature??0),w=wmo(d.current_weather?.weathercode??0);document.getElementById('hdr-temp').textContent=t+'°';document.getElementById('hdr-sub').textContent=w.ic+' 目前位置';document.getElementById('gps-txt').textContent='📍 目前位置(即時)';}catch(e){}}
+
+function renderHeader(){document.getElementById('ttl-txt').textContent=S.trip.title||'旅遊手帳';document.getElementById('dt-txt').textContent=S.trip.dates||'—';document.title=(S.trip.title||'旅遊手帳')+' · 手帳';if(wxPlaces[0]&&S.weatherData[wxPlaces[0]]){const{data}=S.weatherData[wxPlaces[0]];const t=Math.round(data.current_weather?.temperature??0),w=wmo(data.current_weather?.weathercode??0);document.getElementById('hdr-temp').textContent=t+'°';document.getElementById('hdr-sub').textContent=w.ic+' '+wxPlaces[0];}}
+
+const CICON={'名古屋':'🏯','愛知':'🌸','三重':'⛩','伊勢':'⛩','志摩':'🌊','鳥羽':'🌊','松阪':'🥩','滋賀':'🏔','彦根':'🏯','近江八幡':'🏯','琵琶湖':'🏞','京都':'⛩','大阪':'🏯','東京':'🗼','奈良':'🦌'};
+function buildCityTabs(){const ct=document.getElementById('city-tabs');if(!ct)return;ct.innerHTML=wxPlaces.filter(p=>p!=='目前位置').map((p,i)=>`<button class="ctab ${i===curCity?'on':''}" onclick="switchCity(this,${i})">${CICON[p]||'🌸'} ${p}</button>`).join('');}
+function updateCityTabs(){document.querySelectorAll('.ctab').forEach((b,i)=>b.classList.toggle('on',i===curCity));}
+function switchCity(btn,idx){curCity=idx;updateCityTabs();renderWeather();}
+
+function mkDayBar(cId,tabKey,cb){const sc=document.getElementById(cId);if(!sc)return;sc.innerHTML='';S.days.forEach((d,i)=>{let top=String(d.dayNum),bot='D'+d.dayNum;if(d.date){const m=d.date.match(/(\d{1,2})[\/\-](\d{1,2})/);if(m){top=m[2];bot=m[1]+'月 D'+d.dayNum;}}const ch=document.createElement('div');ch.className='dc'+(i===curDay[tabKey]?' on':'');ch.innerHTML=`<span class="dn">${top}</span><span class="dl">${bot}</span>`;ch.onclick=()=>{curDay[tabKey]=i;mkDayBar(cId,tabKey,cb);cb(i);};sc.appendChild(ch);});}
+
+function renderItinDays(){mkDayBar('itin-days','itin',renderItinDay);}
+function renderItinDay(idx){const d=S.days[idx];if(!d){setEl('itin-content','<div class="loading-card"><div>無資料</div></div>');return;}const items=S.itinerary[d.dayNum]||[];let h=`<div class="dtrow"><div class="dttxt">${d.title}</div></div><div class="tl">`;if(!items.length){h+='<div class="loading-card" style="padding:18px"><div>此天無行程資料</div></div>';}else{items.forEach((it,i)=>{const hX=(it.note&&it.note.trim())||(it.url&&it.url.trim());const xb=hX?`<button class="xbtn" id="xb${idx}${i}" onclick="toggleNote(${idx},${i})"><span class="ar">▶</span> 備注/更多資訊</button>`:'';const xn=hX?`<div class="xnotes" id="xn${idx}${i}">${it.note?`<div class="xntxt">${it.note.replace(/\n/g,'<br>')}</div>`:''}${it.url?`<a class="xlink" href="${it.url}" target="_blank">🔗 開啟網頁 ↗</a>`:''}</div>`:'';h+=`<div class="tlr" style="animation-delay:${i*.04}s"><div class="tlt">${it.time}</div><div class="tld ${it.type}"></div><div class="tlc ${it.type}"><div class="tlm"><div class="tlh"><div class="tln">${it.icon} ${it.name}</div><div class="tltag ${it.type}">${TLAB[it.type]||it.cat}</div></div><div class="tlde">${it.desc}</div>${(it.dur||it.cost)?`<div class="tlmt">${it.dur?`<span>⏱ ${it.dur}</span>`:''}${it.cost?`<span>💴 ${it.cost}</span>`:''}</div>`:''} ${xb}</div>${xn}</div></div>`;});}h+='</div>';setEl('itin-content',h);}
+function toggleNote(d,i){document.getElementById(`xn${d}${i}`)?.classList.toggle('show');document.getElementById(`xb${d}${i}`)?.classList.toggle('open');}
+
+function renderWxDays(){mkDayBar('wx-days','weather',renderWxDay);}
+function renderWxDay(idx){const d=S.days[idx];if(!d)return;const dayWx=(S.weatherDays[d.dayNum]||[])[0];const pl=dayWx?.place||wxPlaces[0]||'名古屋';const ci=wxPlaces.filter(p=>p!=='目前位置').indexOf(pl);if(ci>=0){curCity=ci;updateCityTabs();}renderWeather();}
+function renderWeather(){const pl=wxPlaces.filter(p=>p!=='目前位置')[curCity]||wxPlaces[0]||'名古屋';const wd=S.weatherData[pl]||S.weatherData['目前位置'];if(!wd){document.getElementById('wx-city').textContent=pl;document.getElementById('wx-temp').textContent='—°';['wx-cond','wx-hl','wx-hum','wx-rain','wx-wind','wx-uv'].forEach(id=>document.getElementById(id).textContent='—');document.getElementById('hourly').innerHTML='';document.getElementById('forecast').innerHTML='';document.getElementById('advice').textContent='天氣資料取得中…';return;}const{coords,data}=wd;const cw=data.current_weather||{},w=wmo(cw.weathercode??0),t=Math.round(cw.temperature??0);const now=new Date(),ts=now.toISOString().split('T')[0];const allT=data.hourly?.time||[],ti=allT.findIndex(x=>x.startsWith(ts));const sl=(a,s,n)=>(a||[]).slice(Math.max(0,s),Math.max(0,s)+n);const hi=Math.round(data.daily?.temperature_2m_max?.[0]??t+3),lo=Math.round(data.daily?.temperature_2m_min?.[0]??t-4),rp=data.daily?.precipitation_probability_max?.[0]??0,spd=Math.round(cw.windspeed??0);const hIdx=ti>=0?ti+now.getHours():0,hm=data.hourly?.relativehumidity_2m?.[hIdx]??0,uv=data.hourly?.uv_index?.[hIdx]??0,uvT=uv<=2?'低':uv<=5?'中等':uv<=7?'高':'極強';document.getElementById('wx-city').textContent=coords.name;document.getElementById('wx-temp').textContent=t+'°';document.getElementById('wx-cond').textContent=w.ic+' '+w.d;document.getElementById('wx-hl').textContent=`最高 ${hi}° · 最低 ${lo}°`;document.getElementById('wx-hum').textContent=hm+'%';document.getElementById('wx-rain').textContent=rp+'%';document.getElementById('wx-wind').textContent=spd+'km/h';document.getElementById('wx-uv').textContent=uvT;document.getElementById('tenki-lnk').href=coords.tenki;document.getElementById('hdr-temp').textContent=t+'°';document.getElementById('hdr-sub').textContent=w.ic+' '+coords.name.split('·')[0].trim();let adv=`目前氣溫 ${t}°，`;if(rp>60)adv+='今日降雨機率高，務必攜帶雨傘！';else if(rp>30)adv+='有機率降雨，建議備用摺疊傘。';else adv+='天氣晴朗舒適。';if(hi-lo>10)adv+=` 早晚溫差大（${lo}°~${hi}°），建議備薄外套。`;if(uvT==='高'||uvT==='極強')adv+=' 紫外線強烈，請做好防曬。';document.getElementById('advice').textContent=adv;const hs=ti>=0?ti+Math.max(0,now.getHours()-1):0;const hT=sl(data.hourly?.temperature_2m,hs,16),hR=sl(data.hourly?.precipitation_probability,hs,16),hTm=sl(allT,hs,16),hW=sl(data.hourly?.weathercode,hs,16);const mn=Math.min(...hT),mx=Math.max(...hT);document.getElementById('hourly').innerHTML=hT.map((v,i)=>{const pct=mx===mn?50:Math.round(((v-mn)/(mx-mn))*72+10);const hr=hTm[i]?new Date(hTm[i]).getHours():(now.getHours()+i)%24;return `<div class="hi"><div class="hitime">${String(hr).padStart(2,'0')}時</div><div class="hiic">${wmo(hW[i]??0).ic}</div><div class="hibw"><div class="hib" style="height:${pct}%"></div></div><div class="hit">${Math.round(v)}°</div><div class="hir">${hR[i]??0}%</div></div>`;}).join('');const dT=data.daily?.time||[],dH=data.daily?.temperature_2m_max||[],dL=data.daily?.temperature_2m_min||[],dR=data.daily?.precipitation_probability_max||[],dW=data.daily?.weathercode||[];const DOW=['日','一','二','三','四','五','六'];document.getElementById('forecast').innerHTML=dT.slice(0,8).map((dt,i)=>{const d2=new Date(dt);return `<div class="fcc"><div class="fcd">${d2.getMonth()+1}/${d2.getDate()}<br>${DOW[d2.getDay()]}</div><div class="fcic">${wmo(dW[i]??0).ic}</div><div class="fchi">${Math.round(dH[i]??0)}°</div><div class="fclo">${Math.round(dL[i]??0)}°</div><div class="fcr">☔${dR[i]??0}%</div></div>`;}).join('');}
+async function locateMe(){const txt=document.getElementById('gps-txt');txt.textContent='定位中…';if(!navigator.geolocation){txt.textContent='不支援定位';return;}navigator.geolocation.getCurrentPosition(async pos=>{txt.textContent='取得天氣中…';try{const{latitude:la,longitude:lo}=pos.coords;const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,relativehumidity_2m,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`)).json();let best='名古屋',md=Infinity;for(const[k,v]of Object.entries(COORDS)){const dd=Math.hypot(v.lat-la,v.lon-lo);if(dd<md){md=dd;best=k;}}S.weatherData['目前位置']={coords:{...resolveC(best),name:'目前位置(GPS)'},data:d};if(!wxPlaces.includes('目前位置')){wxPlaces.unshift('目前位置');buildCityTabs();}curCity=0;updateCityTabs();renderWeather();txt.textContent='📍 目前位置(即時)';toast('📍 已取得即時天氣');}catch(e){txt.textContent='取得失敗';}},()=>{txt.textContent='請允許位置權限';},{timeout:10000,maximumAge:60000});}
+
+function renderTrDays(){mkDayBar('tr-days','transport',renderTrDay);}
+function renderTrDay(idx){const d=S.days[idx];if(!d)return;const items=(S.itinerary[d.dayNum]||[]).filter(it=>it.type==='transport');let h=`<div class="dtrow"><div class="dttxt">${d.title}</div></div>`;if(!items.length){h+=`<div class="loading-card"><span style="font-size:30px;display:block;margin-bottom:7px">🚃</span><div style="color:#9c8e7e">此天無交通行程</div></div>`;}else{items.forEach(it=>{const pts=it.name.split(/[→➜]|->/).map(s=>s.trim());const from=pts[0]||it.name,to=pts[1]||'';const tF=(it.desc+' '+it.note).match(/(\d{1,2}:\d{2})/g)||[];const depT=it.time||tF[0]||'—',arrT=tF[1]||'—';const noteH=it.note?`<div style="padding:9px 13px;background:#ede6d5;border-top:1px solid #ddd3bc"><div style="font-size:12px;color:#5c5044;line-height:1.75">${it.note.replace(/\n/g,'<br>')}</div></div>`:'';h+=`<div class="trc"><div class="trh"><div class="trrt">${from}${to?' → '+to:''}</div><div class="trtp">${it.cat||'交通'}</div></div>${to?`<div style="display:flex;align-items:center;gap:8px;padding:10px 13px"><div style="text-align:center"><div style="font-size:13px;font-weight:700">${from}</div><div style="font-size:11px;color:#5c5044;margin-top:2px">${depT}</div></div><div style="flex:1;position:relative"><div style="height:2px;background:#6898b0"></div><div style="font-size:10px;color:#9c8e7e;text-align:center;margin-top:2px">${it.dur||''}</div><div style="position:absolute;right:-4px;top:-6px;color:#3d6e8a;font-size:10px">▶</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:700">${to}</div><div style="font-size:11px;color:#5c5044;margin-top:2px">${arrT}</div></div></div>`:''} ${noteH}<div style="display:flex;gap:10px;padding:7px 13px;flex-wrap:wrap;border-top:1px solid #ddd3bc">${it.cost?`<div style="font-size:12px;color:#9c8e7e">票價 <strong style="color:#c0392b">${it.cost}</strong></div>`:''} ${it.desc&&!to?`<div style="font-size:12px;color:#5c5044">${it.desc}</div>`:''}</div>${it.url?`<div style="padding:7px 13px;border-top:1px solid #ddd3bc"><a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#3d6e8a;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.url}" target="_blank">🔗 更多資訊 ↗</a></div>`:''}</div>`;});}h+=`<div style="background:white;border:1px solid #ddd3bc;border-radius:9px;padding:12px;margin-top:3px"><div style="font-size:13px;font-weight:700;margin-bottom:7px">🗂 市內交通選項</div><div style="display:flex;gap:8px;flex-wrap:wrap"><div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#3d6e8a;margin-bottom:2px">🚇 電車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">Suica/Manaca IC卡</div></div><div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#5a7a48;margin-bottom:2px">🚌 公車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">名古屋一日券¥740</div></div><div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#b07830;margin-bottom:2px">🚕 計程車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">起步¥730</div></div></div></div>`;setEl('tr-content',h);}
+
+function showSec(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function bnAct(el){document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
+function setSS(type,msg){document.getElementById('sync-dot').className='sync-dot'+(type==='loading'?' loading':type==='ok'?' ok':type==='err'?' err':'');document.getElementById('sync-msg').textContent=msg;}
+function setEl(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
+function showErr(id,msg){setEl(id,`<div class="error-card"><div class="err-ttl">⚠️ 載入失敗</div><div class="err-txt">${msg}</div><div class="err-hint">請確認：試算表已設為「任何人可以檢視」，且分頁名稱為「主題」「行程」「天氣」</div></div>`);}
+
+document.querySelector('.sync-btn-sm').textContent='↺ 重新整理';
+document.querySelector('.sync-btn-sm').onclick=loadAll;
+
+loadAll();
+setInterval(loadAll,5*60*1000);
+</script>
+</body>
+</html>
