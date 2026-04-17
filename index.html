@@ -286,7 +286,7 @@ const TLAB={sight:'景點',food:'餐飲',transport:'交通',shopping:'購物'};
 let S={trip:{title:'—',dates:'—'},days:[],itinerary:{},weatherDays:{},weatherData:{}};
 let curDay={itin:0,transport:0,weather:0},curCity=0,wxPlaces=[];
 
-function csvUrl(s){return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(s)}`;}
+function csvUrl(s){return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=0&sheet=${encodeURIComponent(s)}`;}
 
 function parseCSV(text){
   return text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim()).map(line=>{
@@ -329,42 +329,41 @@ async function loadAll(){
   toast(S.days.length>0?'✓ 資料已更新':'⚠ 未讀到資料，請確認試算表公開設定');
 }
 
-// ── 修正1&2&3：主題頁解析
-// CSV 實際結構：
-//   row[0] = ["旅遊主題", "愛知．三重．滋賀"]  ← B1 值在 index 1
-//   row[1] = ["旅遊時間", "2026/05/17-05/21"]  ← B2 值在 index 1
-//   row[2] = ["Day", "日期", "標題"]            ← 欄位標題列
+// ── 主題頁解析
+// headers=0 後，gviz CSV 回傳全部原始列：
+//   row[0] = ["旅遊主題", "愛知．三重．滋賀"]  ← A1, B1
+//   row[1] = ["旅遊時間", "2026/05/17-05/21"]  ← A2, B2
+//   row[2] = ["Day", "日期", "標題"]            ← A3, B3, C3 欄位標題列
 //   row[3] = ["1", "2026/05/17", "出發飛抵名古屋"] ← 第一天
 //   row[4] = ["2", "2026/05/18", "遊覽滋賀琵琶湖"] ← 第二天
+//   ...以此類推
 function parseTheme(rows){
   if(!rows||rows.length<3)return;
+  console.log('主題 rows[0]:',rows[0],'rows[1]:',rows[1],'rows[2]:',rows[2],'rows[3]:',rows[3]);
 
-  // 修正1：B1 = 旅遊主題值
+  // B1 = rows[0][1] = 旅遊主題值
   S.trip.title=(rows[0]?.[1]||'').trim()||'旅遊手帳';
-  // 修正2：B2 = 旅遊時間值
+  // B2 = rows[1][1] = 旅遊時間值
   S.trip.dates=(rows[1]?.[1]||'').trim();
 
-  // 修正3：row[2] 是欄位標題（Day/日期/標題），row[3] 起是每日資料
+  // row[2] 是欄位標題列（Day/日期/標題），從 row[3] 起是實際每日資料
   S.days=[];
   for(let i=3;i<rows.length;i++){
     const r=rows[i];
     const dayNum=parseInt(r[0]);
     if(isNaN(dayNum)||dayNum<1)continue;
-    // 日期格式 2026/05/17 → 取月/日顯示 5/17
     const rawDate=(r[1]||'').trim();
     const dateMatch=rawDate.match(/\d{4}[\/\-](\d{1,2})[\/\-](\d{1,2})/);
     const dateShort=dateMatch?`${parseInt(dateMatch[1])}/${parseInt(dateMatch[2])}`:rawDate;
-    const dateMonth=dateMatch?`${parseInt(dateMatch[1])}月`:'';
     S.days.push({
       dayNum,
-      date:rawDate,        // 完整日期 2026/05/17
-      dateShort,           // 短日期 5/17
-      dateMonth,           // 月份 5月
+      date:rawDate,
+      dateShort,
       title:(r[2]||'').trim()||`Day ${dayNum}`
     });
   }
   S.days.sort((a,b)=>a.dayNum-b.dayNum);
-  console.log('主題:',S.trip,'天數:',S.days.length);
+  console.log('主題解析完成: title=',S.trip.title,'dates=',S.trip.dates,'天數=',S.days.length);
 }
 
 // 行程: row[0]=欄位名 row[1+]=資料
@@ -649,15 +648,6 @@ function renderTrDay(idx){
       </div>`;
     });
   }
-  // 市內交通選項提示
-  h+=`<div style="background:white;border:1px solid #ddd3bc;border-radius:9px;padding:12px;margin-top:10px">
-    <div style="font-size:13px;font-weight:700;margin-bottom:7px">🗂 市內交通選項</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#3d6e8a;margin-bottom:2px">🚇 電車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">Suica/Manaca IC卡</div></div>
-      <div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#5a7a48;margin-bottom:2px">🚌 公車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">名古屋一日券¥740</div></div>
-      <div style="flex:1;min-width:85px"><div style="font-size:12px;font-weight:700;color:#b07830;margin-bottom:2px">🚕 計程車</div><div style="font-size:11px;color:#5c5044;line-height:1.6">起步¥730</div></div>
-    </div>
-  </div>`;
   setEl('tr-content',h);
 }
 
