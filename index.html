@@ -312,9 +312,16 @@ async function fetchSheet(name){
 async function loadAll(){
   setSS('loading','同步中…');
   setEl('itin-content','<div class="loading-card"><span style="font-size:28px;display:block;margin-bottom:8px">⏳</span><div>從 Google Sheets 載入中…</div></div>');
-  const[thR,itR,wxR]=await Promise.allSettled([fetchSheet('主題'),fetchSheet('行程'),fetchSheet('天氣')]);
+  const[thR,sumR,itR,wxR]=await Promise.allSettled([
+    fetchSheet('主題'),
+    fetchSheet('摘要'),
+    fetchSheet('行程'),
+    fetchSheet('天氣')
+  ]);
   if(thR.status==='fulfilled')parseTheme(thR.value);
   else console.warn('主題:',thR.reason?.message);
+  if(sumR.status==='fulfilled')parseSummary(sumR.value);
+  else console.warn('摘要:',sumR.reason?.message);
   if(itR.status==='fulfilled')parseItinerary(itR.value);
   else showErr('itin-content','行程載入失敗：'+(itR.reason?.message||''));
   if(wxR.status==='fulfilled')parseWeatherSheet(wxR.value);
@@ -330,25 +337,31 @@ async function loadAll(){
 }
 
 // ── 主題頁解析
-// headers=0 後，gviz CSV 回傳全部原始列：
-//   row[0] = ["旅遊主題", "愛知．三重．滋賀"]  ← A1, B1
-//   row[1] = ["旅遊時間", "2026/05/17-05/21"]  ← A2, B2
-//   row[2] = ["Day", "日期", "標題"]            ← A3, B3, C3 欄位標題列
-//   row[3] = ["1", "2026/05/17", "出發飛抵名古屋"] ← 第一天
-//   row[4] = ["2", "2026/05/18", "遊覽滋賀琵琶湖"] ← 第二天
-//   ...以此類推
+// 格式：A欄=key, B欄=value，掃描找「旅遊主題」和「旅遊時間」
+// headers=0 回傳全部原始列，不管列順序
 function parseTheme(rows){
-  if(!rows||rows.length<3)return;
-  console.log('主題 rows[0]:',rows[0],'rows[1]:',rows[1],'rows[2]:',rows[2],'rows[3]:',rows[3]);
+  if(!rows||rows.length<1)return;
+  S.trip.title='旅遊手帳';
+  S.trip.dates='';
+  for(const r of rows){
+    const key=(r[0]||'').trim();
+    const val=(r[1]||'').trim();
+    if(key==='旅遊主題'&&val)S.trip.title=val;
+    if(key==='旅遊時間'&&val)S.trip.dates=val;
+  }
+  console.log('主題: title=',S.trip.title,'dates=',S.trip.dates);
+}
 
-  // B1 = rows[0][1] = 旅遊主題值
-  S.trip.title=(rows[0]?.[1]||'').trim()||'旅遊手帳';
-  // B2 = rows[1][1] = 旅遊時間值
-  S.trip.dates=(rows[1]?.[1]||'').trim();
-
-  // row[2] 是欄位標題列（Day/日期/標題），從 row[3] 起是實際每日資料
+// ── 摘要頁解析（新分頁）
+// 格式：row[0]=欄位標題[Day, 日期, 標題], row[1+]=每日資料
+// 1  2026/05/17  出發飛抵名古屋
+// 2  2026/05/18  遊覽滋賀琵琶湖
+// ...
+function parseSummary(rows){
+  if(!rows||rows.length<2)return;
+  // row[0] 是欄位標題列，跳過
   S.days=[];
-  for(let i=3;i<rows.length;i++){
+  for(let i=1;i<rows.length;i++){
     const r=rows[i];
     const dayNum=parseInt(r[0]);
     if(isNaN(dayNum)||dayNum<1)continue;
@@ -363,7 +376,7 @@ function parseTheme(rows){
     });
   }
   S.days.sort((a,b)=>a.dayNum-b.dayNum);
-  console.log('主題解析完成: title=',S.trip.title,'dates=',S.trip.dates,'天數=',S.days.length);
+  console.log('摘要解析完成: 天數=',S.days.length, S.days);
 }
 
 // 行程: row[0]=欄位名 row[1+]=資料
