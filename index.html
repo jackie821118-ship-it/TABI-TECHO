@@ -373,8 +373,12 @@ function parseItinerary(rows){
   const hdr=rows[0];
   const fi=(...keys)=>{for(const k of keys){const i=hdr.findIndex(h=>h===k||h.includes(k));if(i>=0)return i;}return -1;};
   const cDay  =fi('Day','day','天');
-  const cTimeS=fi('時間起','開始時間','start');
-  const cTimeE=fi('時間迄','結束時間','end');
+  // 時間起：找「時間起」欄，找不到取第一個「時間」欄
+  const cTimeS=fi('時間起','開始','start')>=0?fi('時間起','開始','start'):fi('時間');
+  // 時間迄：找「時間迄」欄，找不到取第二個「時間」欄
+  const _tAll=hdr.reduce((a,h,i)=>{if(h.includes('時間'))a.push(i);return a;},[]);
+  const cTimeE_byName=fi('時間迄','結束','end','迄');
+  const cTimeE=cTimeE_byName>=0?cTimeE_byName:(_tAll.length>=2?_tAll[1]:-1);
   const cDur  =fi('區間','duration','時長');
   const cName =fi('標題','名稱');
   const cCat  =fi('分類','類型');
@@ -458,7 +462,23 @@ const COORDS={
 function resolveC(p){if(COORDS[p])return COORDS[p];for(const[k,v]of Object.entries(COORDS)){if(p.includes(k)||k.includes(p))return v;}return COORDS['名古屋'];}
 function wmo(c){if(c===0)return{ic:'☀️',d:'晴天'};if(c<=2)return{ic:'🌤',d:'部分多雲'};if(c===3)return{ic:'☁️',d:'多雲'};if(c<=49)return{ic:'🌫',d:'霧'};if(c<=59)return{ic:'🌦',d:'毛毛雨'};if(c<=69)return{ic:'🌧',d:'雨'};if(c<=79)return{ic:'🌨',d:'雪'};if(c<=84)return{ic:'🌧',d:'陣雨'};if(c<=99)return{ic:'⛈',d:'雷暴'};return{ic:'🌡',d:'—'};}
 async function fetchWx(place){const c=resolveC(place);const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,relativehumidity_2m,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`);if(!r.ok)throw new Error('wx');return{coords:c,data:await r.json()};}
-async function fetchAllWeather(){S.weatherData={};await Promise.allSettled(wxPlaces.map(async p=>{try{S.weatherData[p]=await fetchWx(p);}catch(e){}}));}
+async function fetchAllWeather(){
+  S.weatherData={};
+  await Promise.allSettled(wxPlaces.map(async p=>{try{S.weatherData[p]=await fetchWx(p);}catch(e){}}));
+  // 右上角天氣：用定位取當地溫度（不影響天氣頁內容）
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const{latitude:la,longitude:lo}=pos.coords;
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current_weather=true&timezone=auto`)
+        .then(r=>r.json()).then(d=>{
+          const t=Math.round(d.current_weather?.temperature??0);
+          const w=wmo(d.current_weather?.weathercode??0);
+          document.getElementById('hdr-temp').textContent=t+'°';
+          document.getElementById('hdr-sub').textContent=w.ic+' 當地';
+        }).catch(()=>{});
+    },()=>{},{timeout:6000,maximumAge:300000});
+  }
+}
 
 
 
@@ -508,7 +528,7 @@ function renderItinDay(idx){
   }else{
     items.forEach((it,i)=>{
       const hX=(it.note&&it.note.trim())||(it.url&&it.url.trim())||(it.gmap&&it.gmap.trim());
-      const xb=hX?`<button class="xbtn" id="xb${idx}${i}" onclick="toggleNote(${idx},${i})"><span class="ar">▶</span> 備注/更多資訊</button>`:'';
+      const xb=hX?`<button class="xbtn" id="xb${idx}${i}" onclick="toggleNote(${idx},${i})"><span class="ar">▶</span> 更多資訊</button>`:'';
       const xn=hX?`<div class="xnotes" id="xn${idx}${i}">
         ${it.note?`<div class="xntxt">${it.note.replace(/\n/g,'<br>')}</div>`:''}
         <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:5px">
@@ -662,7 +682,10 @@ function renderTrDay(idx){
         <div style="display:flex;gap:10px;padding:7px 13px;flex-wrap:wrap;border-top:1px solid #ddd3bc">
           ${it.cost?`<div style="font-size:12px;color:#9c8e7e">票價 <strong style="color:#c0392b">${it.cost}</strong></div>`:''}
         </div>
-        ${it.url?`<div style="padding:7px 13px;border-top:1px solid #ddd3bc"><a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#3d6e8a;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.url}" target="_blank">🔗 更多資訊 ↗</a></div>`:''}
+        ${(it.url||it.gmap)?`<div style="padding:7px 13px;border-top:1px solid #ddd3bc;display:flex;gap:7px;flex-wrap:wrap">
+          ${it.url?`<a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#3d6e8a;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.url}" target="_blank">🔗 開啟網頁 ↗</a>`:''}
+          ${it.gmap?`<a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#4285f4;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.gmap}" target="_blank">📍 Google Map</a>`:''}
+        </div>`:''}
       </div>`;
     });
   }
