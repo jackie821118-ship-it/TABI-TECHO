@@ -101,7 +101,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 .wxsts{display:flex;gap:15px;padding-top:9px;border-top:1px solid rgba(255,255,255,.15);flex-wrap:wrap}
 .wxst{font-size:var(--sm);color:rgba(255,255,255,.6)}
 .wxst strong{display:block;font-size:var(--lg);font-weight:300;color:white;margin-top:2px}
-.gps-tag{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);border-radius:5px;padding:3px 8px;font-size:var(--xs);color:rgba(255,255,255,.8);margin-bottom:6px;cursor:pointer}
 .hw{background:white;border:1px solid var(--wa3);border-radius:9px;margin-bottom:13px;overflow:hidden}
 .hwhdr{font-size:var(--sm);font-weight:700;color:var(--su2);padding:11px 12px 9px;border-bottom:1px solid var(--wa3)}
 .hscr{display:flex;overflow-x:auto;scrollbar-width:none;padding:9px 11px 11px}
@@ -237,7 +236,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
     <!-- rendered by JS from sheet data -->
   </div>
   <div class="wx-hero">
-    <div class="gps-tag" id="gps-tag" onclick="locateMe()">📍 <span id="gps-txt">點擊取得目前位置天氣</span></div>
     <div class="wxcity" id="wx-city">—</div>
     <div class="wxrow">
       <div class="wxtemp" id="wx-temp">—°</div>
@@ -386,7 +384,7 @@ function parseItinerary(rows){
   const cUrl  =fi('網頁','連結');
   const cGmap =fi('Google Map','google map','地圖');
   console.log('行程欄位:',hdr);
-  const fc=(r,c,fb)=>String(r[c>=0?c:fb]??'').trim();
+  const fc=(r,c,fb)=>c>=0?String(r[c]??'').trim():(fb>=0?String(r[fb]??'').trim():'');
   for(let i=1;i<rows.length;i++){
     const r=rows[i],dayNum=parseInt(fc(r,cDay,0));
     if(isNaN(dayNum)||dayNum<1)continue;
@@ -460,37 +458,9 @@ const COORDS={
 function resolveC(p){if(COORDS[p])return COORDS[p];for(const[k,v]of Object.entries(COORDS)){if(p.includes(k)||k.includes(p))return v;}return COORDS['名古屋'];}
 function wmo(c){if(c===0)return{ic:'☀️',d:'晴天'};if(c<=2)return{ic:'🌤',d:'部分多雲'};if(c===3)return{ic:'☁️',d:'多雲'};if(c<=49)return{ic:'🌫',d:'霧'};if(c<=59)return{ic:'🌦',d:'毛毛雨'};if(c<=69)return{ic:'🌧',d:'雨'};if(c<=79)return{ic:'🌨',d:'雪'};if(c<=84)return{ic:'🌧',d:'陣雨'};if(c<=99)return{ic:'⛈',d:'雷暴'};return{ic:'🌡',d:'—'};}
 async function fetchWx(place){const c=resolveC(place);const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,relativehumidity_2m,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`);if(!r.ok)throw new Error('wx');return{coords:c,data:await r.json()};}
-async function fetchAllWeather(){S.weatherData={};await Promise.allSettled(wxPlaces.map(async p=>{try{S.weatherData[p]=await fetchWx(p);}catch(e){}}));if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>gpsWx(p.coords.latitude,p.coords.longitude),()=>{},{timeout:8000,maximumAge:300000});}
+async function fetchAllWeather(){S.weatherData={};await Promise.allSettled(wxPlaces.map(async p=>{try{S.weatherData[p]=await fetchWx(p);}catch(e){}}));}
 
-function isInJapan(la,lo){return la>=24&&la<=46&&lo>=122&&lo<=146;}
 
-function gpsWx(la,lo){
-  if(!isInJapan(la,lo)){
-    // 不在日本：右上角顯示當地溫度，點擊開 Google 天氣
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current_weather=true&timezone=auto`)
-      .then(r=>r.json()).then(d=>{
-        const t=Math.round(d.current_weather?.temperature??0);
-        const w=wmo(d.current_weather?.weathercode??0);
-        document.getElementById('hdr-temp').textContent=t+'°';
-        document.getElementById('hdr-sub').textContent=w.ic+' 當地';
-      }).catch(()=>{});
-    const gpsTxt=document.getElementById('gps-txt');
-    if(gpsTxt)gpsTxt.innerHTML='📍 非日本地區 <a href="https://www.google.com/search?q=weather" target="_blank" style="color:rgba(255,255,255,.85);font-weight:700">Google天氣↗</a>';
-    return;
-  }
-  // 在日本：Open-Meteo + tenki
-  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`)
-    .then(r=>r.json()).then(d=>{
-      let best='名古屋',md=Infinity;
-      for(const[k,v]of Object.entries(COORDS)){const dd=Math.hypot(v.lat-la,v.lon-lo);if(dd<md){md=dd;best=k;}}
-      S.weatherData['目前位置']={coords:{...resolveC(best),name:'目前位置(GPS)'},data:d};
-      const t=Math.round(d.current_weather?.temperature??0),w=wmo(d.current_weather?.weathercode??0);
-      document.getElementById('hdr-temp').textContent=t+'°';
-      document.getElementById('hdr-sub').textContent=w.ic+' 目前位置';
-      const gpsTxt=document.getElementById('gps-txt');
-      if(gpsTxt)gpsTxt.textContent='📍 目前位置(即時)';
-    }).catch(()=>{});
-}
 
 // ── RENDER HEADER
 function renderHeader(){
@@ -544,11 +514,10 @@ function renderItinDay(idx){
         <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:5px">
           ${it.url?`<a class="xlink" href="${it.url}" target="_blank">🔗 開啟網頁 ↗</a>`:''}
           ${it.gmap?`<a class="xlink" style="background:#4285f4" href="${it.gmap}" target="_blank">📍 Google Map</a>`:''}
-        </div>
-      </div>`:''
-      // 時間顯示：時間起 ~ 時間迄
+        </div></div>`:''
+      // 時間起 + 時間迄
       const timeHtml=it.timeS
-        ?`${it.timeS}${it.timeE?'<br><span style="font-size:12px;opacity:.7">~'+it.timeE+'</span>':''}`
+        ?`${it.timeS}${it.timeE?'<br><span style="font-size:12px;opacity:.75">~'+it.timeE+'</span>':''}`
         :'';
       h+=`<div class="tlr" style="animation-delay:${i*.04}s">
         <div class="tlt">${timeHtml}</div>
@@ -572,19 +541,19 @@ function renderItinDay(idx){
 }
 function toggleNote(d,i){document.getElementById(`xn${d}${i}`)?.classList.toggle('show');document.getElementById(`xb${d}${i}`)?.classList.toggle('open');}
 
-// ── RENDER WEATHER
+// ── RENDER WEATHER（只顯示指定地點，不考慮定位）
 function renderWxDays(){mkDayBar('wx-days','weather',renderWxDay);}
 function renderWxDay(idx){
   const d=S.days[idx];if(!d)return;
   const dayWx=(S.weatherDays[d.dayNum]||[])[0];
   const pl=dayWx?.place||wxPlaces[0]||'名古屋';
-  const ci=wxPlaces.filter(p=>p!=='目前位置').indexOf(pl);
+  const ci=wxPlaces.indexOf(pl);
   if(ci>=0){curCity=ci;updateCityTabs();}
   renderWeather();
 }
 function renderWeather(){
-  const pl=wxPlaces.filter(p=>p!=='目前位置')[curCity]||wxPlaces[0]||'名古屋';
-  const wd=S.weatherData[pl]||S.weatherData['目前位置'];
+  const pl=wxPlaces[curCity]||wxPlaces[0]||'名古屋';
+  const wd=S.weatherData[pl];
   if(!wd){
     document.getElementById('wx-city').textContent=pl;
     document.getElementById('wx-temp').textContent='—°';
@@ -631,7 +600,6 @@ function renderWeather(){
     const hr=hTm[i]?new Date(hTm[i]).getHours():(now.getHours()+i)%24;
     return `<div class="hi"><div class="hitime">${String(hr).padStart(2,'0')}時</div><div class="hiic">${wmo(hW[i]??0).ic}</div><div class="hibw"><div class="hib" style="height:${pct}%"></div></div><div class="hit">${Math.round(v)}°</div><div class="hir">${hR[i]??0}%</div></div>`;
   }).join('');
-  // 天氣預報：只顯示旅遊期間
   const tripDates=S.days.map(d=>d.date).filter(Boolean);
   const tripStart=tripDates[0]||'',tripEnd=tripDates[tripDates.length-1]||'';
   const dT=data.daily?.time||[],dH=data.daily?.temperature_2m_max||[];
@@ -653,29 +621,6 @@ function renderWeather(){
       <div class="fcr">☔${dR[i]??0}%</div>
     </div>`;
   }).join('');
-}
-
-async function locateMe(){
-  const txt=document.getElementById('gps-txt');txt.textContent='定位中…';
-  if(!navigator.geolocation){txt.textContent='不支援定位';return;}
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    txt.textContent='取得天氣中…';
-    try{
-      const{latitude:la,longitude:lo}=pos.coords;
-      const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,relativehumidity_2m,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`)).json();
-      let best='名古屋',md=Infinity;
-      for(const[k,v]of Object.entries(COORDS)){const dd=Math.hypot(v.lat-la,v.lon-lo);if(dd<md){md=dd;best=k;}}
-      if(isInJapan(la,lo)){
-        S.weatherData['目前位置']={coords:{...resolveC(best),name:'目前位置(GPS)'},data:d};
-        if(!wxPlaces.includes('目前位置')){wxPlaces.unshift('目前位置');buildCityTabs();}
-        curCity=0;updateCityTabs();renderWeather();
-        txt.textContent='📍 目前位置(即時)';toast('📍 已取得即時天氣');
-      }else{
-        txt.innerHTML='📍 非日本地區 <a href="https://www.google.com/search?q=weather" target="_blank" style="color:#3d6e8a;font-weight:700">Google天氣 ↗</a>';
-        toast('📍 目前不在日本，請查看 Google 天氣');
-      }
-    }catch(e){txt.textContent='取得失敗';}
-  },()=>{txt.textContent='請允許位置權限';},{timeout:10000,maximumAge:60000});
 }
 
 // ── RENDER TRANSPORT
@@ -706,7 +651,7 @@ function renderTrDay(idx){
             <div style="font-size:11px;color:#5c5044;text-align:center;margin-bottom:3px;font-weight:600">${it.desc||''}</div>
             <div style="height:2px;background:#6898b0"></div>
             <div style="font-size:10px;color:#9c8e7e;text-align:center;margin-top:3px">${it.dur||''}</div>
-            <div style="position:absolute;right:0px;top:14px;color:#3d6e8a;font-size:11px">▶</div>
+            <div style="position:absolute;right:0;top:18px;color:#3d6e8a;font-size:11px">▶</div>
           </div>
           <div style="text-align:center;flex:1">
             <div style="font-size:13px;font-weight:700">${to}</div>
@@ -730,7 +675,7 @@ function bnAct(el){document.querySelectorAll('.bn').forEach(b=>b.classList.remov
 function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
 function setSS(type,msg){document.getElementById('sync-dot').className='sync-dot'+(type==='loading'?' loading':type==='ok'?' ok':type==='err'?' err':'');document.getElementById('sync-msg').textContent=msg;}
 function setEl(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
-function showErr(id,msg){setEl(id,`<div class="error-card"><div class="err-ttl">⚠️ 載入失敗</div><div class="err-txt">${msg}</div><div class="err-hint">請確認試算表已設為「任何人可以檢視」，分頁名稱：主題/摘要/行程/天氣</div></div>`);}
+function showErr(id,msg){setEl(id,`<div class="error-card"><div class="err-ttl">⚠️ 載入失敗</div><div class="err-txt">${msg}</div><div class="err-hint">請確認試算表已設為「任何人可以檢視」，分頁：主題/摘要/行程/天氣</div></div>`);}
 
 document.querySelector('.sync-btn-sm').textContent='↺ 重新整理';
 document.querySelector('.sync-btn-sm').onclick=loadAll;
