@@ -373,21 +373,19 @@ function parseItinerary(rows){
   const hdr=rows[0];
   const fi=(...keys)=>{for(const k of keys){const i=hdr.findIndex(h=>h===k||h.includes(k));if(i>=0)return i;}return -1;};
   const cDay  =fi('Day','day','天');
-  // 時間起：找「時間起」欄，找不到取第一個「時間」欄
-  const cTimeS=fi('時間起','開始','start')>=0?fi('時間起','開始','start'):fi('時間');
-  // 時間迄：找「時間迄」欄，找不到取第二個「時間」欄
-  const _tAll=hdr.reduce((a,h,i)=>{if(h.includes('時間'))a.push(i);return a;},[]);
-  const cTimeE_byName=fi('時間迄','結束','end','迄');
-  const cTimeE=cTimeE_byName>=0?cTimeE_byName:(_tAll.length>=2?_tAll[1]:-1);
-  const cDur  =fi('區間','duration','時長');
-  const cName =fi('標題','名稱');
-  const cCat  =fi('分類','類型');
-  const cDesc =fi('說明','描述');
-  const cCost =fi('費用');
-  const cNote =fi('備註','備注');
-  const cUrl  =fi('網頁','連結');
-  const cGmap =fi('Google Map','google map','地圖');
-  console.log('行程欄位:',hdr);
+  // 欄位對應（優先用名稱，找不到用位置）
+  const cTimeS = fi('時間起','開始時間','time_start') >= 0 ? fi('時間起','開始時間','time_start') : 1;
+  const cTimeE = fi('時間迄','結束時間','time_end','到達時間') >= 0 ? fi('時間迄','結束時間','time_end','到達時間') : 2;
+  const cDur   = fi('區間','所需時間','duration','時長');
+  const cName  = fi('標題','名稱') >= 0 ? fi('標題','名稱') : 4;
+  const cCat   = fi('分類','類型') >= 0 ? fi('分類','類型') : 5;
+  const cDesc  = fi('說明','描述') >= 0 ? fi('說明','描述') : 6;
+  const cCost  = fi('費用') >= 0 ? fi('費用') : 7;
+  const cNote  = fi('備註','備注') >= 0 ? fi('備註','備注') : 8;
+  const cUrl   = fi('網頁','連結') >= 0 ? fi('網頁','連結') : 9;
+  const cGmap  = fi('Google Map','google map','地圖') >= 0 ? fi('Google Map','google map','地圖') : 10;
+  console.log('行程欄位:', JSON.stringify(hdr));
+  console.log('欄位index: Day=0 timeS='+cTimeS+' timeE='+cTimeE+' dur='+cDur+' name='+cName+' cat='+cCat);
   const fc=(r,c,fb)=>c>=0?String(r[c]??'').trim():(fb>=0?String(r[fb]??'').trim():'');
   for(let i=1;i<rows.length;i++){
     const r=rows[i],dayNum=parseInt(fc(r,cDay,0));
@@ -397,7 +395,7 @@ function parseItinerary(rows){
     if(!name)continue;
     const type=mapCat(cat);
     S.itinerary[dayNum].push({
-      timeS:fc(r,cTimeS,1),timeE:fc(r,cTimeE,-1),
+      timeS:fc(r,cTimeS,1),timeE:fc(r,cTimeE,cTimeE>=0?cTimeE:2),
       type,icon:typeIcon(type),name,cat,
       desc:fc(r,cDesc,4),dur:fc(r,cDur,-1),cost:fc(r,cCost,6),
       note:fc(r,cNote,7),url:fc(r,cUrl,8),gmap:fc(r,cGmap,-1)
