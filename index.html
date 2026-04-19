@@ -386,6 +386,7 @@ function parseItinerary(rows){
   const cNote  = fi('備註','備注') >= 0 ? fi('備註','備注') : 8;
   const cUrl   = fi('網頁','連結') >= 0 ? fi('網頁','連結') : 9;
   const cGmap  = fi('Google Map','google map','地圖') >= 0 ? fi('Google Map','google map','地圖') : 10;
+  const cImg   = fi('圖片','image','img','照片');
   console.log('行程欄位:', JSON.stringify(hdr));
   console.log('欄位index: Day=0 timeS='+cTimeS+' timeE='+cTimeE+' dur='+cDur+' name='+cName+' cat='+cCat);
   const fc=(r,c,fb)=>c>=0?String(r[c]??'').trim():(fb>=0?String(r[fb]??'').trim():'');
@@ -400,7 +401,7 @@ function parseItinerary(rows){
       timeS:fc(r,cTimeS,1),timeE:fc(r,cTimeE,cTimeE>=0?cTimeE:2),
       type,icon:typeIcon(type),name,cat,
       desc:fc(r,cDesc,4),dur:fc(r,cDur,-1),cost:fc(r,cCost,6),
-      note:fc(r,cNote,7),url:fc(r,cUrl,8),gmap:fc(r,cGmap,-1)
+      note:fc(r,cNote,7),url:fc(r,cUrl,8),gmap:fc(r,cGmap,-1),img:fc(r,cImg,-1)
     });
   }
   console.log('行程:',Object.values(S.itinerary).flat().length,'筆');
@@ -554,6 +555,9 @@ function renderItinDay(idx){
             ${(it.dur||it.cost)?`<div class="tlmt">${it.dur?`<span>⏱ ${it.dur}</span>`:''}${it.cost?`<span>💴 ${it.cost}</span>`:''}</div>`:''}
             ${xb}
           </div>${xn}
+          ${it.img?`<div style="padding:0;overflow:hidden;border-top:1px solid var(--wa3)">
+            <img src="${it.img}" alt="${it.name}" style="width:100%;max-height:220px;object-fit:cover;display:block" loading="lazy" onerror="this.parentElement.style.display='none'">
+          </div>`:''}
         </div>
       </div>`;
     });
