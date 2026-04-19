@@ -430,6 +430,19 @@ function parseWeatherSheet(rows){
   console.log('天氣地點:',wxPlaces);
 }
 
+// Google Drive 連結轉換為可直接顯示的圖片 URL
+function gdriveUrl(url){
+  if(!url)return url;
+  // https://drive.google.com/file/d/FILE_ID/view → https://lh3.googleusercontent.com/d/FILE_ID
+  let m=url.match(/\/file\/d\/([^\/\?]+)/);
+  if(m)return `https://lh3.googleusercontent.com/d/${m[1]}`;
+  // https://drive.google.com/open?id=FILE_ID
+  m=url.match(/[?&]id=([^&]+)/);
+  if(m)return `https://lh3.googleusercontent.com/d/${m[1]}`;
+  // 已是直接連結
+  return url;
+}
+
 function mapCat(c){
   const s=(c||'').toLowerCase();
   if(s.includes('餐')||s.includes('食')||s.includes('飲'))return'food';
@@ -555,8 +568,8 @@ function renderItinDay(idx){
             ${(it.dur||it.cost)?`<div class="tlmt">${it.dur?`<span>⏱ ${it.dur}</span>`:''}${it.cost?`<span>💴 ${it.cost}</span>`:''}</div>`:''}
             ${xb}
           </div>${xn}
-          ${it.img?`<div style="padding:0;overflow:hidden;border-top:1px solid var(--wa3)">
-            <img src="${it.img}" alt="${it.name}" style="width:100%;max-height:220px;object-fit:cover;display:block" loading="lazy" onerror="this.parentElement.style.display='none'">
+          ${(console.log('img:',it.img,'→',gdriveUrl(it.img||'')),it.img)?`<div style="padding:0;overflow:hidden;border-top:1px solid var(--wa3)">
+            <img src="${gdriveUrl(it.img)}" alt="${it.name}" style="width:100%;max-height:220px;object-fit:cover;display:block" loading="lazy" onerror="this.style.display='none';this.parentElement.style.display='none'">
           </div>`:''}
         </div>
       </div>`;
