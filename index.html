@@ -26,7 +26,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 .sgb::before{content:'';position:absolute;top:-5px;left:0;right:0;height:20px;background:radial-gradient(circle at 50% 100%,transparent 8px,var(--aka) 8px,var(--aka) 10px,transparent 10px) -10px 0/20px 10px,radial-gradient(circle at 50% 100%,transparent 8px,var(--kin) 8px,var(--kin) 10px,transparent 10px) 0 5px/20px 10px;background-color:var(--aka)}
 
 /* HEADER */
-.hdr{background:linear-gradient(155deg,#f0e8d4,#e4d9c0 60%,#d8ccb0);padding:16px 16px 12px;position:relative;overflow:hidden;border-bottom:2px solid var(--wa3)}
+.hdr{background:linear-gradient(155deg,#f0e8d4,#e4d9c0 60%,#d8ccb0);padding:14px 16px 12px;position:sticky;top:0;z-index:200;overflow:hidden;border-bottom:2px solid var(--wa3)}
 .hdr-k{position:absolute;right:4px;top:-6px;font-family:'Shippori Mincho',serif;font-size:86px;font-weight:700;line-height:1;color:var(--kin);opacity:.08;writing-mode:vertical-rl;letter-spacing:-10px;pointer-events:none;user-select:none}
 .hdr-row{display:flex;align-items:center;gap:11px}
 .hdr-mon{width:38px;height:38px;border-radius:50%;border:2px solid var(--kin);display:flex;align-items:center;justify-content:center;font-size:19px;background:rgba(255,255,255,.4);flex-shrink:0}
@@ -217,12 +217,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
       <div class="wx-chip-s" id="hdr-sub">天氣</div>
     </div>
   </div>
-</div>
-
-<!-- sync status bar -->
-<div class="sync-bar">
-  <div class="sync-time"><div class="sync-dot" id="sync-dot"></div><span id="sync-msg">尚未同步</span></div>
-  <button class="sync-btn-sm" onclick="loadAll()">↺ 重新整理</button>
 </div>
 
 <!-- ITINERARY -->
@@ -513,9 +507,19 @@ function renderHeader(){
 
 // ── CITY TABS
 const CICON={'名古屋':'🏯','愛知':'🌸','三重':'⛩','伊勢':'⛩','志摩':'🌊','鳥羽':'🌊','松阪':'🥩','滋賀':'🏔','彦根':'🏯','近江八幡':'🏯','琵琶湖':'🏞','京都':'⛩','大阪':'🏯','東京':'🗼','奈良':'🦌'};
-function buildCityTabs(){const ct=document.getElementById('city-tabs');if(!ct)return;ct.innerHTML=wxPlaces.filter(p=>p!=='目前位置').map((p,i)=>`<button class="ctab ${i===curCity?'on':''}" onclick="switchCity(this,${i})">${CICON[p]||'🌸'} ${p}</button>`).join('');}
-function updateCityTabs(){document.querySelectorAll('.ctab').forEach((b,i)=>b.classList.toggle('on',i===curCity));}
+// 建立城市標籤（可傳入指定地點清單，預設用 wxPlaces）
+function buildCityTabs(places){
+  const ct=document.getElementById('city-tabs');if(!ct)return;
+  const list=(places||wxPlaces).filter(p=>p!=='目前位置');
+  ct.innerHTML=list.map((p,i)=>`<button class="ctab ${i===curCity?'on':''}" onclick="switchCityByName('${p}')">${CICON[p]||'🌸'} ${p}</button>`).join('');
+}
+function updateCityTabs(){document.querySelectorAll('.ctab').forEach(b=>b.classList.toggle('on',b.textContent.includes(wxPlaces.filter(p=>p!=='目前位置')[curCity]||'')));}
 function switchCity(btn,idx){curCity=idx;updateCityTabs();renderWeather();}
+function switchCityByName(place){
+  const idx=wxPlaces.filter(p=>p!=='目前位置').indexOf(place);
+  if(idx>=0){curCity=idx;renderWeather();}
+  document.querySelectorAll('.ctab').forEach(b=>b.classList.toggle('on',b.textContent.includes(place)));
+}
 
 // ── DAY BAR
 function mkDayBar(cId,tabKey,cb){
@@ -561,7 +565,7 @@ function renderItinDay(idx){
         <div class="tlc ${it.type}">
           <div class="tlm">
             <div class="tlh">
-              <div class="tln">${it.icon} ${it.name}</div>
+              <div class="tln">${it.name}</div>
               <div class="tltag ${it.type}">${TLAB[it.type]||it.cat}</div>
             </div>
             <div class="tlde">${it.desc}</div>
@@ -584,10 +588,13 @@ function toggleNote(d,i){document.getElementById(`xn${d}${i}`)?.classList.toggle
 function renderWxDays(){mkDayBar('wx-days','weather',renderWxDay);}
 function renderWxDay(idx){
   const d=S.days[idx];if(!d)return;
-  const dayWx=(S.weatherDays[d.dayNum]||[])[0];
-  const pl=dayWx?.place||wxPlaces[0]||'名古屋';
-  const ci=wxPlaces.indexOf(pl);
-  if(ci>=0){curCity=ci;updateCityTabs();}
+  // 取得當天所有地點（去重）
+  const dayPlaces=[...new Set((S.weatherDays[d.dayNum]||[]).map(w=>w.place).filter(Boolean))];
+  const pl=dayPlaces[0]||wxPlaces[0]||'名古屋';
+  // 更新城市標籤只顯示當天地點
+  buildCityTabs(dayPlaces.length>0?dayPlaces:wxPlaces);
+  const ci=wxPlaces.filter(p=>p!=='目前位置').indexOf(pl);
+  if(ci>=0){curCity=ci;}
   renderWeather();
 }
 function renderWeather(){
@@ -715,12 +722,11 @@ function renderTrDay(idx){
 function showSec(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function bnAct(el){document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
 function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
-function setSS(type,msg){document.getElementById('sync-dot').className='sync-dot'+(type==='loading'?' loading':type==='ok'?' ok':type==='err'?' err':'');document.getElementById('sync-msg').textContent=msg;}
+function setSS(type,msg){console.log('[sync]',type,msg);}
 function setEl(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
 function showErr(id,msg){setEl(id,`<div class="error-card"><div class="err-ttl">⚠️ 載入失敗</div><div class="err-txt">${msg}</div><div class="err-hint">請確認試算表已設為「任何人可以檢視」，分頁：主題/摘要/行程/天氣</div></div>`);}
 
-document.querySelector('.sync-btn-sm').textContent='↺ 重新整理';
-document.querySelector('.sync-btn-sm').onclick=loadAll;
+
 
 loadAll();
 setInterval(loadAll,5*60*1000);
