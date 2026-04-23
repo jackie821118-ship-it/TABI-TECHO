@@ -22,7 +22,7 @@ body{font-family:'Noto Sans TC',sans-serif;font-size:var(--md);background:var(--
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(160,140,100,.05) 23px,rgba(160,140,100,.05) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(160,140,100,.03) 23px,rgba(160,140,100,.03) 24px)}
 
 /* seigaiha */
-.sgb{height:10px;background:var(--aka);position:relative;overflow:hidden}
+.sgb{height:10px;background:var(--aka);position:sticky;top:var(--hdr-h,68px);z-index:199;overflow:hidden}
 .sgb::before{content:'';position:absolute;top:-5px;left:0;right:0;height:20px;background:radial-gradient(circle at 50% 100%,transparent 8px,var(--aka) 8px,var(--aka) 10px,transparent 10px) -10px 0/20px 10px,radial-gradient(circle at 50% 100%,transparent 8px,var(--kin) 8px,var(--kin) 10px,transparent 10px) 0 5px/20px 10px;background-color:var(--aka)}
 
 /* HEADER */
@@ -47,7 +47,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 .sec-ttl::after{content:'';flex:1;height:1px;background:var(--wa3)}
 
 /* DAY CHIPS */
-.daybar{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:11px}
+.daybar{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:10px 0 6px;margin-bottom:12px;position:sticky;top:calc(var(--hdr-h,68px) + 10px);z-index:198;background:var(--wa)}
 .daybar::-webkit-scrollbar{display:none}
 .dc{flex-shrink:0;min-width:54px;padding:7px 9px;border-radius:6px;border:1.5px solid var(--wa3);background:white;cursor:pointer;text-align:center;transition:all .2s}
 .dc .dn{font-family:'Shippori Mincho',serif;font-size:18px;font-weight:600;display:block;line-height:1}
@@ -197,6 +197,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.6}}
+
+/* ── 購物頁 */
+.shop-store{background:white;border:1px solid var(--wa3);border-radius:9px;margin-bottom:10px;overflow:hidden;box-shadow:0 2px 6px var(--sh)}
+.shop-store-hdr{display:flex;align-items:center;gap:11px;padding:12px 14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.shop-logo{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--wa3);flex-shrink:0;background:var(--wa2);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
+.shop-logo img{width:100%;height:100%;object-fit:cover}
+.shop-store-name{font-size:var(--lg);font-weight:700;color:var(--su);flex:1}
+.shop-store-count{font-size:var(--xs);color:var(--su3);margin-top:2px}
+.shop-chevron{font-size:12px;color:var(--su3);transition:transform .25s;flex-shrink:0}
+.shop-chevron.open{transform:rotate(180deg)}
+.shop-items{display:none;border-top:1px solid var(--wa3)}
+.shop-items.show{display:block}
+.shop-item{padding:12px 14px;border-bottom:1px dashed var(--wa3)}
+.shop-item:last-child{border-bottom:none}
+.shop-item-name{font-size:var(--md);font-weight:700;color:var(--su);margin-bottom:4px}
+.shop-item-note{font-size:var(--sm);color:var(--su2);line-height:1.65;margin-bottom:6px}
+.shop-item-img{width:100%;max-height:200px;object-fit:cover;border-radius:6px;margin-bottom:7px;display:block}
+.shop-item-links{display:flex;gap:7px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -222,7 +240,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 <!-- ITINERARY -->
 <div class="section active" id="itinerary">
   <div class="daybar" id="itin-days"></div>
-  <div id="itin-content"><div class="loading-card"><span class="loading-icon">⏳</span><div class="loading-txt">從 Google Sheets 載入行程中…</div></div></div>
+  <div id="itin-content"><div class="loading-card"><span class="loading-icon">⏳</span><div class="loading-txt">載入行程中…</div></div></div>
 </div>
 
 <!-- WEATHER -->
@@ -261,17 +279,23 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 <!-- TRANSPORT -->
 <div class="section" id="transport">
   <div class="daybar" id="tr-days"></div>
-  <div id="tr-content"><div class="loading-card"><span class="loading-icon">⏳</span><div class="loading-txt">從 Google Sheets 載入交通資訊中…</div></div></div>
+  <div id="tr-content"><div class="loading-card"><span class="loading-icon">⏳</span><div class="loading-txt">載入交通資訊中…</div></div></div>
 </div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <!-- BOTTOM NAV (3 items only) -->
+<!-- 購物分頁 -->
+<div class="section" id="shopping-page">
+  <div id="shop-content"><div class="loading-card"><span style="font-size:28px;display:block;margin-bottom:8px">🛍</span><div>資料載入中…</div></div></div>
+</div>
+
 <div class="bnav">
   <button class="bn on" onclick="showSec('itinerary');bnAct(this)"><span class="bnic">📅</span>行程</button>
   <button class="bn" onclick="showSec('weather');bnAct(this)"><span class="bnic">🌤</span>天氣</button>
   <button class="bn" onclick="showSec('transport');bnAct(this)"><span class="bnic">🚅</span>交通</button>
+  <button class="bn" onclick="showSec('shopping-page');bnAct(this)"><span class="bnic">🛍</span>購物</button>
 </div>
 
 
@@ -309,12 +333,13 @@ async function fetchSheet(name){
 
 async function loadAll(){
   setSS('loading','同步中…');
-  setEl('itin-content','<div class="loading-card"><span style="font-size:28px;display:block;margin-bottom:8px">⏳</span><div>從 Google Sheets 載入中…</div></div>');
-  const[thR,sumR,itR,wxR]=await Promise.allSettled([
+  setEl('itin-content','<div class="loading-card"><span style="font-size:28px;display:block;margin-bottom:8px">⏳</span><div>資料載入中…</div></div>');
+  const[thR,sumR,itR,wxR,shopR]=await Promise.allSettled([
     fetchSheet('主題'),
     fetchSheet('摘要'),
     fetchSheet('行程'),
-    fetchSheet('天氣')
+    fetchSheet('天氣'),
+    fetchSheet('購物')
   ]);
   if(thR.status==='fulfilled')parseTheme(thR.value);
   else console.warn('主題:',thR.reason?.message);
@@ -324,6 +349,8 @@ async function loadAll(){
   else showErr('itin-content','行程載入失敗：'+(itR.reason?.message||''));
   if(wxR.status==='fulfilled')parseWeatherSheet(wxR.value);
   else console.warn('天氣:',wxR.reason?.message);
+  if(shopR.status==='fulfilled')renderShopping(shopR.value);
+  else console.warn('購物:',shopR.reason?.message);
   await fetchAllWeather();
   renderHeader();buildCityTabs();
   renderItinDays();renderItinDay(0);
@@ -718,6 +745,83 @@ function renderTrDay(idx){
   setEl('tr-content',h);
 }
 
+
+// ── RENDER SHOPPING
+// Sheet[購物] 格式：row[0]=欄位標題, row[1+]=資料
+// 欄位：店家, LOGO, 商品, 備註, 連結, 圖片
+function renderShopping(rows){
+  if(!rows||rows.length<2){
+    setEl('shop-content','<div class="loading-card"><div>無購物資料</div></div>');return;
+  }
+  const hdr=rows[0];
+  const fi=(...keys)=>{for(const k of keys){const i=hdr.findIndex(h=>h===k||h.includes(k));if(i>=0)return i;}return -1;};
+  const cStore=fi('店家','商店','store','shop');
+  const cLogo =fi('LOGO','logo','標誌','圖標');
+  const cItem =fi('商品','品名','product','item','名稱');
+  const cNote =fi('備註','備注','note','說明');
+  const cUrl  =fi('連結','網頁','url','link');
+  const cImg  =fi('圖片','image','img','照片');
+  const fc=(r,c,fb)=>c>=0?String(r[c]??'').trim():(fb>=0?String(r[fb]??'').trim():'');
+  console.log('購物欄位:',hdr);
+
+  // 依店家分組
+  const stores={};
+  const storeOrder=[];
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i];
+    const store=fc(r,cStore,0)||'其他';
+    const item=fc(r,cItem,2);
+    if(!item)continue;
+    if(!stores[store]){stores[store]={logo:fc(r,cLogo,1),items:[]};storeOrder.push(store);}
+    stores[store].items.push({
+      name:item,
+      note:fc(r,cNote,3),
+      url:fc(r,cUrl,4),
+      img:fc(r,cImg,5),
+    });
+  }
+
+  let h='';
+  storeOrder.forEach((store,si)=>{
+    const{logo,items}=stores[store];
+    const logoHtml=logo
+      ?`<div class="shop-logo"><img src="${gdriveUrl(logo)}" alt="${store}" onerror="this.parentElement.textContent='🛍'"></div>`
+      :`<div class="shop-logo">🛍</div>`;
+    h+=`<div class="shop-store">
+      <div class="shop-store-hdr" onclick="toggleStore(${si})">
+        ${logoHtml}
+        <div style="flex:1;min-width:0">
+          <div class="shop-store-name">${store}</div>
+          <div class="shop-store-count">${items.length} 件商品</div>
+        </div>
+        <div class="shop-chevron" id="chev-${si}">▼</div>
+      </div>
+      <div class="shop-items" id="store-${si}">`;
+    items.forEach((it,ii)=>{
+      h+=`<div class="shop-item">
+        ${it.img?`<img src="${gdriveUrl(it.img)}" alt="${it.name}" class="shop-item-img" loading="lazy" onerror="this.style.display='none'">`:''}
+        <div class="shop-item-name">${it.name}</div>
+        ${it.note?`<div class="shop-item-note">${it.note.replace(/\n/g,'<br>')}</div>`:''}
+        ${(it.url)?`<div class="shop-item-links">
+          ${it.url?`<a class="xlink" href="${it.url}" target="_blank">🔗 開啟網頁 ↗</a>`:''}
+        </div>`:''}
+      </div>`;
+    });
+    h+='</div></div>';
+  });
+
+  if(!h)h='<div class="loading-card"><div style="color:var(--su3)">尚無購物資料</div></div>';
+  setEl('shop-content',h);
+}
+
+function toggleStore(si){
+  const items=document.getElementById('store-'+si);
+  const chev=document.getElementById('chev-'+si);
+  if(!items)return;
+  items.classList.toggle('show');
+  if(chev)chev.classList.toggle('open');
+}
+
 // ── UTIL
 function showSec(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function bnAct(el){document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
@@ -727,6 +831,14 @@ function setEl(id,html){const el=document.getElementById(id);if(el)el.innerHTML=
 function showErr(id,msg){setEl(id,`<div class="error-card"><div class="err-ttl">⚠️ 載入失敗</div><div class="err-txt">${msg}</div><div class="err-hint">請確認試算表已設為「任何人可以檢視」，分頁：主題/摘要/行程/天氣</div></div>`);}
 
 
+
+// 動態設定 header 高度給 sticky 用
+function setHdrHeight(){
+  const hdr=document.querySelector('.hdr');
+  if(hdr)document.documentElement.style.setProperty('--hdr-h',hdr.offsetHeight+'px');
+}
+setHdrHeight();
+window.addEventListener('resize',setHdrHeight);
 
 loadAll();
 setInterval(loadAll,5*60*1000);
