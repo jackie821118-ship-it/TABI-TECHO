@@ -22,11 +22,11 @@ body{font-family:'Noto Sans TC',sans-serif;font-size:var(--md);background:var(--
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(160,140,100,.05) 23px,rgba(160,140,100,.05) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(160,140,100,.03) 23px,rgba(160,140,100,.03) 24px)}
 
 /* seigaiha */
-.sgb{height:10px;background:var(--aka);position:sticky;top:var(--hdr-h,68px);z-index:199;overflow:hidden}
+.sgb{height:10px;background:var(--aka);position:sticky;top:0;z-index:201;overflow:hidden}
 .sgb::before{content:'';position:absolute;top:-5px;left:0;right:0;height:20px;background:radial-gradient(circle at 50% 100%,transparent 8px,var(--aka) 8px,var(--aka) 10px,transparent 10px) -10px 0/20px 10px,radial-gradient(circle at 50% 100%,transparent 8px,var(--kin) 8px,var(--kin) 10px,transparent 10px) 0 5px/20px 10px;background-color:var(--aka)}
 
 /* HEADER */
-.hdr{background:linear-gradient(155deg,#f0e8d4,#e4d9c0 60%,#d8ccb0);padding:14px 16px 12px;position:sticky;top:0;z-index:200;overflow:hidden;border-bottom:2px solid var(--wa3)}
+.hdr{background:linear-gradient(155deg,#f0e8d4,#e4d9c0 60%,#d8ccb0);padding:14px 16px 12px;position:sticky;top:10px;z-index:200;overflow:hidden;border-bottom:2px solid var(--wa3)}
 .hdr-k{position:absolute;right:4px;top:-6px;font-family:'Shippori Mincho',serif;font-size:86px;font-weight:700;line-height:1;color:var(--kin);opacity:.08;writing-mode:vertical-rl;letter-spacing:-10px;pointer-events:none;user-select:none}
 .hdr-row{display:flex;align-items:center;gap:11px}
 .hdr-mon{width:38px;height:38px;border-radius:50%;border:2px solid var(--kin);display:flex;align-items:center;justify-content:center;font-size:19px;background:rgba(255,255,255,.4);flex-shrink:0}
@@ -47,7 +47,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 .sec-ttl::after{content:'';flex:1;height:1px;background:var(--wa3)}
 
 /* DAY CHIPS */
-.daybar{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:10px 0 6px;margin-bottom:12px;position:sticky;top:calc(var(--hdr-h,68px) + 10px);z-index:198;background:var(--wa)}
+.daybar{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:10px 0 6px;margin-bottom:12px;position:sticky;top:calc(10px + var(--hdr-h,68px));z-index:198;background:var(--wa)}
 .daybar::-webkit-scrollbar{display:none}
 .dc{flex-shrink:0;min-width:54px;padding:7px 9px;border-radius:6px;border:1.5px solid var(--wa3);background:white;cursor:pointer;text-align:center;transition:all .2s}
 .dc .dn{font-family:'Shippori Mincho',serif;font-size:18px;font-weight:600;display:block;line-height:1}
