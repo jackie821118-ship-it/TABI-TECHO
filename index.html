@@ -558,7 +558,7 @@ function mkDayBar(cId,tabKey,cb){
     const ch=document.createElement('div');
     ch.className='dc'+(i===curDay[tabKey]?' on':'');
     ch.innerHTML=`<span class="dn">${top}</span><span class="dl">${bot}</span>`;
-    ch.onclick=()=>{curDay[tabKey]=i;mkDayBar(cId,tabKey,cb);cb(i);};
+    ch.onclick=()=>{curDay[tabKey]=i;mkDayBar(cId,tabKey,cb);cb(i);window.scrollTo({top:0,behavior:'instant'});};
     sc.appendChild(ch);
   });
 }
@@ -823,7 +823,7 @@ function toggleStore(si){
 }
 
 // ── UTIL
-function showSec(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function showSec(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo({top:0,behavior:'instant'});}
 function bnAct(el){document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
 function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
 function setSS(type,msg){console.log('[sync]',type,msg);}
