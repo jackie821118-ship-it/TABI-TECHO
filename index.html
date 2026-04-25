@@ -785,7 +785,8 @@ function renderMapPage(rows){
   const fi=(...keys)=>{for(const k of keys){const i=hdr.findIndex(h=>h===k||h.includes(k));if(i>=0)return i;}return -1;};
   const cName=fi('地圖名稱','名稱','name');
   const cLogo=fi('地圖LOGO','LOGO','logo','標誌');
-  const cImg =fi('地圖','image','img','圖片','map');
+  // 精確比對「地圖」欄位（排除含「地圖名稱」「地圖LOGO」的欄位）
+  const cImg=hdr.findIndex(h=>h.trim()==='地圖'||h.trim()==='map'||h.trim()==='image'||h.trim()==='img'||h.trim()==='圖片');
   const fc=(r,c,fb)=>c>=0?String(r[c]??'').trim():(fb>=0?String(r[fb]??'').trim():'');
 
   let h='';
