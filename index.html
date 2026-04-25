@@ -711,38 +711,38 @@ function renderTrDay(idx){
       const from=pts[0]||it.name,to=pts[1]||'';
       const depT=it.timeS||'—',arrT=it.timeE||'—';
 
-      // 深藍標題列（永遠顯示）
-      const trhHtml=`<div class="trh">
-          <div class="trrt">${from}${to?' → '+to:''}</div>
-          <div class="trtp">${it.cat||'交通'}</div>
-        </div>`;
-
-      // 有交通圖：只顯示標題 + 圖片
-      // 無交通圖：顯示標題 + 路線時間資訊 + 連結
       if(it.trImg){
+        // 有交通圖：只顯示深藍標題 + 圖片
         h+=`<div class="trc">
-          ${trhHtml}
+          <div class="trh">
+            <div class="trrt">${from}${to?' → '+to:''}</div>
+            <div class="trtp">${it.cat||'交通'}</div>
+          </div>
           <div style="overflow:hidden">
             <img src="${gdriveUrl(it.trImg)}" alt="${it.name}" style="width:100%;height:auto;display:block" loading="lazy" onerror="this.parentElement.style.display='none'">
           </div>
         </div>`;
       }else{
+        // 無交通圖：顯示深藍標題 + 路線時間資訊（如有起訖站）
         h+=`<div class="trc">
-          ${trhHtml}
+          <div class="trh">
+            <div class="trrt">${from}${to?' → '+to:''}</div>
+            <div class="trtp">${it.cat||'交通'}</div>
+          </div>
           ${to?`<div style="display:flex;align-items:center;gap:8px;padding:10px 13px">
             <div style="text-align:center;flex:1">
               <div style="font-size:13px;font-weight:700">${from}</div>
-              <div style="font-size:11px;color:#5c5044;margin-top:2px">${depT}</div>
+              <div style="font-size:13px;color:#5c5044;margin-top:3px">${depT}</div>
             </div>
             <div style="flex:2;position:relative;padding:0 8px">
               <div style="font-size:11px;color:#5c5044;text-align:center;margin-bottom:3px;font-weight:600">${it.desc||''}</div>
               <div style="height:2px;background:#6898b0"></div>
-              <div style="font-size:10px;color:#9c8e7e;text-align:center;margin-top:3px">${it.dur||''}</div>
+              <div style="font-size:11px;color:#9c8e7e;text-align:center;margin-top:3px">${it.dur||''}</div>
               <div style="position:absolute;right:0;top:18px;color:#3d6e8a;font-size:11px">▶</div>
             </div>
             <div style="text-align:center;flex:1">
               <div style="font-size:13px;font-weight:700">${to}</div>
-              <div style="font-size:11px;color:#5c5044;margin-top:2px">${arrT}</div>
+              <div style="font-size:13px;color:#5c5044;margin-top:3px">${arrT}</div>
             </div>
           </div>`:it.desc?`<div style="padding:9px 13px;font-size:12px;color:#5c5044">${it.desc}</div>`:''}
         </div>`;
