@@ -751,3 +751,89 @@ function renderTrDay(idx){
   }
   setEl('tr-content',h);
 }
+
+
+
+// ── RENDER SHOPPING
+function renderShopping(rows){
+  if(!rows||rows.length<2){setEl('shop-content','<div class="loading-card"><div>無購物資料</div></div>');return;}
+  const hdr=rows[0];
+  const fi=(...keys)=>{for(const k of keys){const i=hdr.findIndex(h=>h===k||h.includes(k));if(i>=0)return i;}return -1;};
+  const cStore=fi('店家','商店','store'),cLogo=fi('LOGO','logo','標誌');
+  const cItem=fi('商品','品名','product','名稱'),cNote=fi('備註','備注','note','說明');
+  const cUrl=fi('連結','網頁','url'),cImg=fi('圖片','image','img','照片');
+  const fc=(r,c,fb)=>c>=0?String(r[c]??'').trim():(fb>=0?String(r[fb]??'').trim():'');
+  const stores={},storeOrder=[];
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i];
+    const store=fc(r,cStore,0)||'其他';
+    const item=fc(r,cItem,2);if(!item)continue;
+    if(!stores[store]){stores[store]={logo:fc(r,cLogo,1),items:[]};storeOrder.push(store);}
+    stores[store].items.push({name:item,note:fc(r,cNote,3),url:fc(r,cUrl,4),img:fc(r,cImg,5)});
+  }
+  let h='';
+  storeOrder.forEach((store,si)=>{
+    const{logo,items}=stores[store];
+    const logoHtml=logo?`<div class="shop-logo"><img src="${gdriveUrl(logo)}" alt="${store}" onerror="this.parentElement.textContent='🛍'"></div>`:`<div class="shop-logo">🛍</div>`;
+    h+=`<div class="shop-store">
+      <div class="shop-store-hdr" onclick="toggleStore(${si})">
+        ${logoHtml}
+        <div style="flex:1;min-width:0">
+          <div class="shop-store-name">${store}</div>
+          <div class="shop-store-count">${items.length} 件商品</div>
+        </div>
+        <div class="shop-chevron" id="chev-${si}">▼</div>
+      </div>
+      <div class="shop-items" id="store-${si}">`;
+    items.forEach(it=>{
+      h+=`<div class="shop-item">
+        ${it.img?`<img src="${gdriveUrl(it.img)}" alt="${it.name}" class="shop-item-img" loading="lazy" onerror="this.style.display='none'">`:''}
+        <div class="shop-item-name">${it.name}</div>
+        ${it.note?`<div class="shop-item-note">${it.note.replace(/\n/g,'<br>')}</div>`:''}
+        ${it.url?`<div class="shop-item-links"><a class="xlink" href="${it.url}" target="_blank">🔗 開啟網頁 ↗</a></div>`:''}
+      </div>`;
+    });
+    h+='</div></div>';
+  });
+  if(!h)h='<div class="loading-card"><div style="color:var(--su3)">尚無購物資料</div></div>';
+  setEl('shop-content',h);
+}
+
+function toggleStore(si){
+  const items=document.getElementById('store-'+si);
+  const chev=document.getElementById('chev-'+si);
+  if(!items)return;
+  items.classList.toggle('show');
+  if(chev)chev.classList.toggle('open');
+}
+
+function toggleTrImg(hdr){
+  const box=hdr.parentElement.querySelector('.tr-img-box');
+  const arrow=hdr.querySelector('.tr-img-arrow');
+  if(!box)return;
+  const show=box.style.display==='none'||!box.style.display;
+  box.style.display=show?'block':'none';
+  if(arrow)arrow.style.transform=show?'rotate(180deg)':'rotate(0deg)';
+}
+
+// ── UTIL
+function showSec(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo({top:0,behavior:'instant'});}
+function bnAct(el){document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
+function setSS(type,msg){console.log('[sync]',type,msg);}
+function setEl(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
+function showErr(id,msg){setEl(id,`<div class="error-card"><div class="err-ttl">⚠️ 載入失敗</div><div class="err-txt">${msg}</div><div class="err-hint">請確認試算表已設為「任何人可以檢視」，分頁：主題/摘要/行程/天氣</div></div>`);}
+
+// 動態設定 header 高度給 sticky 用
+function setHdrHeight(){
+  const hdr=document.querySelector('.hdr');
+  if(hdr)document.documentElement.style.setProperty('--hdr-h',hdr.offsetHeight+'px');
+}
+setHdrHeight();
+window.addEventListener('resize',setHdrHeight);
+
+loadAll();
+setInterval(loadAll,5*60*1000);
+</script>
+</body>
+</html>
