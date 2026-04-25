@@ -837,25 +837,11 @@ function renderMapPage(rows){
 }
 
 function openLightbox(src,url){
-  const lb=document.getElementById('lightbox');
-  const img=document.getElementById('lightbox-img');
-  if(!lb||!img)return;
-  // 用高解析度版本顯示
-  img.src=gdriveHiRes(src);
-  img.alt='';
-  // 若有連結，點圖片開連結
-  img.onclick=url?()=>window.open(url,'_blank'):null;
-  img.style.cursor=url?'pointer':'default';
-  lb.classList.add('show');
-  document.body.style.overflow='hidden';
+  // 直接開連結（若有），否則開原始圖片
+  if(url)window.open(url,'_blank');
+  else window.open(gdriveHiRes(src),'_blank');
 }
-function closeLightbox(){
-  const lb=document.getElementById('lightbox');
-  if(lb)lb.classList.remove('show');
-  document.body.style.overflow='';
-}
-// ESC 鍵關閉
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
+function closeLightbox(){}
 
 function toggleMap(i){
   const box=document.getElementById('map-img-'+i);
