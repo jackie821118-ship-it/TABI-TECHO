@@ -710,152 +710,44 @@ function renderTrDay(idx){
       const pts=it.name.split(/[→➜]|->/).map(s=>s.trim());
       const from=pts[0]||it.name,to=pts[1]||'';
       const depT=it.timeS||'—',arrT=it.timeE||'—';
-      const noteH=it.note?`<div style="padding:9px 13px;background:#ede6d5;border-top:1px solid #ddd3bc"><div style="font-size:12px;color:#5c5044;line-height:1.75">${it.note.replace(/\n/g,'<br>')}</div></div>`:'';
-      h+=`<div class="trc">
-        <div class="trh" ${it.trImg?`onclick="toggleTrImg(this)" style="cursor:pointer"`:''}">
+
+      // 深藍標題列（永遠顯示）
+      const trhHtml=`<div class="trh">
           <div class="trrt">${from}${to?' → '+to:''}</div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div class="trtp">${it.cat||'交通'}</div>
-            ${it.trImg?`<span class="tr-img-arrow" style="font-size:10px;color:rgba(255,255,255,.7);transition:transform .25s">▼</span>`:''}
+          <div class="trtp">${it.cat||'交通'}</div>
+        </div>`;
+
+      // 有交通圖：只顯示標題 + 圖片
+      // 無交通圖：顯示標題 + 路線時間資訊 + 連結
+      if(it.trImg){
+        h+=`<div class="trc">
+          ${trhHtml}
+          <div style="overflow:hidden">
+            <img src="${gdriveUrl(it.trImg)}" alt="${it.name}" style="width:100%;height:auto;display:block" loading="lazy" onerror="this.parentElement.style.display='none'">
           </div>
-        </div>
-        ${to?`<div style="display:flex;align-items:center;gap:8px;padding:10px 13px">
-          <div style="text-align:center;flex:1">
-            <div style="font-size:13px;font-weight:700">${from}</div>
-            <div style="font-size:11px;color:#5c5044;margin-top:2px">${depT}</div>
-          </div>
-          <div style="flex:2;position:relative;padding:0 8px">
-            <div style="font-size:11px;color:#5c5044;text-align:center;margin-bottom:3px;font-weight:600">${it.desc||''}</div>
-            <div style="height:2px;background:#6898b0"></div>
-            <div style="font-size:10px;color:#9c8e7e;text-align:center;margin-top:3px">${it.dur||''}</div>
-            <div style="position:absolute;right:0;top:18px;color:#3d6e8a;font-size:11px">▶</div>
-          </div>
-          <div style="text-align:center;flex:1">
-            <div style="font-size:13px;font-weight:700">${to}</div>
-            <div style="font-size:11px;color:#5c5044;margin-top:2px">${arrT}</div>
-          </div>
-        </div>`:it.desc?`<div style="padding:9px 13px;font-size:12px;color:#5c5044">${it.desc}</div>`:''}
-        ${noteH}
-        <div style="display:flex;gap:10px;padding:7px 13px;flex-wrap:wrap;border-top:1px solid #ddd3bc">
-          ${it.cost?`<div style="font-size:12px;color:#9c8e7e">票價 <strong style="color:#c0392b">${it.cost}</strong></div>`:''}
-        </div>
-        ${(it.url||it.gmap)?`<div style="padding:7px 13px;border-top:1px solid #ddd3bc;display:flex;gap:7px;flex-wrap:wrap">
-          ${it.url?`<a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#3d6e8a;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.url}" target="_blank">🔗 開啟網頁 ↗</a>`:''}
-          ${it.gmap?`<a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#4285f4;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.gmap}" target="_blank">📍 Google Map</a>`:''}
-        </div>`:''}
-      
-        ${it.trImg?`<div class="tr-img-box" style="display:none;border-top:1px solid #ddd3bc"><img src="${gdriveUrl(it.trImg)}" alt="" style="width:100%;height:auto;display:block" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`:''}</div>`;
+        </div>`;
+      }else{
+        h+=`<div class="trc">
+          ${trhHtml}
+          ${to?`<div style="display:flex;align-items:center;gap:8px;padding:10px 13px">
+            <div style="text-align:center;flex:1">
+              <div style="font-size:13px;font-weight:700">${from}</div>
+              <div style="font-size:11px;color:#5c5044;margin-top:2px">${depT}</div>
+            </div>
+            <div style="flex:2;position:relative;padding:0 8px">
+              <div style="font-size:11px;color:#5c5044;text-align:center;margin-bottom:3px;font-weight:600">${it.desc||''}</div>
+              <div style="height:2px;background:#6898b0"></div>
+              <div style="font-size:10px;color:#9c8e7e;text-align:center;margin-top:3px">${it.dur||''}</div>
+              <div style="position:absolute;right:0;top:18px;color:#3d6e8a;font-size:11px">▶</div>
+            </div>
+            <div style="text-align:center;flex:1">
+              <div style="font-size:13px;font-weight:700">${to}</div>
+              <div style="font-size:11px;color:#5c5044;margin-top:2px">${arrT}</div>
+            </div>
+          </div>`:it.desc?`<div style="padding:9px 13px;font-size:12px;color:#5c5044">${it.desc}</div>`:''}
+        </div>`;
+      }
     });
   }
   setEl('tr-content',h);
 }
-
-
-// ── RENDER SHOPPING
-// Sheet[購物] 格式：row[0]=欄位標題, row[1+]=資料
-// 欄位：店家, LOGO, 商品, 備註, 連結, 圖片
-function renderShopping(rows){
-  if(!rows||rows.length<2){
-    setEl('shop-content','<div class="loading-card"><div>無購物資料</div></div>');return;
-  }
-  const hdr=rows[0];
-  const fi=(...keys)=>{for(const k of keys){const i=hdr.findIndex(h=>h===k||h.includes(k));if(i>=0)return i;}return -1;};
-  const cStore=fi('店家','商店','store','shop');
-  const cLogo =fi('LOGO','logo','標誌','圖標');
-  const cItem =fi('商品','品名','product','item','名稱');
-  const cNote =fi('備註','備注','note','說明');
-  const cUrl  =fi('連結','網頁','url','link');
-  const cImg  =fi('圖片','image','img','照片');
-  const fc=(r,c,fb)=>c>=0?String(r[c]??'').trim():(fb>=0?String(r[fb]??'').trim():'');
-  console.log('購物欄位:',hdr);
-
-  // 依店家分組
-  const stores={};
-  const storeOrder=[];
-  for(let i=1;i<rows.length;i++){
-    const r=rows[i];
-    const store=fc(r,cStore,0)||'其他';
-    const item=fc(r,cItem,2);
-    if(!item)continue;
-    if(!stores[store]){stores[store]={logo:fc(r,cLogo,1),items:[]};storeOrder.push(store);}
-    stores[store].items.push({
-      name:item,
-      note:fc(r,cNote,3),
-      url:fc(r,cUrl,4),
-      img:fc(r,cImg,5),
-    });
-  }
-
-  let h='';
-  storeOrder.forEach((store,si)=>{
-    const{logo,items}=stores[store];
-    const logoHtml=logo
-      ?`<div class="shop-logo"><img src="${gdriveUrl(logo)}" alt="${store}" onerror="this.parentElement.textContent='🛍'"></div>`
-      :`<div class="shop-logo">🛍</div>`;
-    h+=`<div class="shop-store">
-      <div class="shop-store-hdr" onclick="toggleStore(${si})">
-        ${logoHtml}
-        <div style="flex:1;min-width:0">
-          <div class="shop-store-name">${store}</div>
-          <div class="shop-store-count">${items.length} 件商品</div>
-        </div>
-        <div class="shop-chevron" id="chev-${si}">▼</div>
-      </div>
-      <div class="shop-items" id="store-${si}">`;
-    items.forEach((it,ii)=>{
-      h+=`<div class="shop-item">
-        ${it.img?`<img src="${gdriveUrl(it.img)}" alt="${it.name}" class="shop-item-img" loading="lazy" onerror="this.style.display='none'">`:''}
-        <div class="shop-item-name">${it.name}</div>
-        ${it.note?`<div class="shop-item-note">${it.note.replace(/\n/g,'<br>')}</div>`:''}
-        ${(it.url)?`<div class="shop-item-links">
-          ${it.url?`<a class="xlink" href="${it.url}" target="_blank">🔗 開啟網頁 ↗</a>`:''}
-        </div>`:''}
-      </div>`;
-    });
-    h+='</div></div>';
-  });
-
-  if(!h)h='<div class="loading-card"><div style="color:var(--su3)">尚無購物資料</div></div>';
-  setEl('shop-content',h);
-}
-
-function toggleTrImg(hdr){
-  const box=hdr.parentElement.querySelector('.tr-img-box');
-  const arrow=hdr.querySelector('.tr-img-arrow');
-  if(!box)return;
-  const show=box.style.display==='none'||!box.style.display;
-  box.style.display=show?'block':'none';
-  if(arrow)arrow.style.transform=show?'rotate(180deg)':'rotate(0deg)';
-}
-
-function toggleStore(si){
-  const items=document.getElementById('store-'+si);
-  const chev=document.getElementById('chev-'+si);
-  if(!items)return;
-  items.classList.toggle('show');
-  if(chev)chev.classList.toggle('open');
-}
-
-// ── UTIL
-function showSec(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo({top:0,behavior:'instant'});}
-function bnAct(el){document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
-function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
-function setSS(type,msg){console.log('[sync]',type,msg);}
-function setEl(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
-function showErr(id,msg){setEl(id,`<div class="error-card"><div class="err-ttl">⚠️ 載入失敗</div><div class="err-txt">${msg}</div><div class="err-hint">請確認試算表已設為「任何人可以檢視」，分頁：主題/摘要/行程/天氣</div></div>`);}
-
-
-
-// 動態設定 header 高度給 sticky 用
-function setHdrHeight(){
-  const hdr=document.querySelector('.hdr');
-  if(hdr)document.documentElement.style.setProperty('--hdr-h',hdr.offsetHeight+'px');
-}
-setHdrHeight();
-window.addEventListener('resize',setHdrHeight);
-
-loadAll();
-setInterval(loadAll,5*60*1000);
-</script>
-</body>
-</html>
