@@ -753,7 +753,7 @@ function renderTrDay(idx){
       const depT=it.timeS||'—',arrT=it.timeE||'—';
 
       if(it.trImg){
-        // 有交通圖：只顯示深藍標題 + 圖片
+        // 有交通圖：深藍標題 + 圖片 + 備註
         h+=`<div class="trc">
           <div class="trh">
             <div class="trrt">${from}${to?' → '+to:''}</div>
@@ -762,6 +762,7 @@ function renderTrDay(idx){
           <div style="overflow:hidden">
             <img src="${gdriveUrl(it.trImg)}" alt="${it.name}" style="width:100%;height:auto;display:block" loading="lazy" onerror="this.parentElement.style.display='none'">
           </div>
+          ${it.note?`<div style="padding:10px 14px;background:var(--wa2);border-top:1px solid var(--wa3);font-size:var(--sm);color:var(--su2);line-height:1.75">${it.note.replace(/\n/g,'<br>')}</div>`:''}
         </div>`;
       }else{
         // 無交通圖：顯示深藍標題 + 路線時間資訊（如有起訖站）
@@ -786,6 +787,7 @@ function renderTrDay(idx){
               <div style="font-size:13px;color:#5c5044;margin-top:3px">${arrT}</div>
             </div>
           </div>`:it.desc?`<div style="padding:9px 13px;font-size:12px;color:#5c5044">${it.desc}</div>`:''}
+          ${it.note?`<div style="padding:10px 14px;background:var(--wa2);border-top:1px solid var(--wa3);font-size:var(--sm);color:var(--su2);line-height:1.75">${it.note.replace(/\n/g,'<br>')}</div>`:''}
         </div>`;
       }
     });
@@ -915,7 +917,7 @@ function toggleTrImg(hdr){
 
 // ── UTIL
 function showSec(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo({top:0,behavior:'instant'});}
-function bnAct(el){document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function bnAct(el){document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));el.classList.add('on');window.scrollTo({top:0,behavior:'instant'});}
 function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
 function setSS(type,msg){console.log('[sync]',type,msg);}
 function setEl(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
