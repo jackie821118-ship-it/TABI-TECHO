@@ -485,16 +485,25 @@ function parseWeatherSheet(rows){
 }
 
 // Google Drive 連結轉換為可直接顯示的圖片 URL
-function gdriveUrl(url){
-  if(!url)return url;
-  // https://drive.google.com/file/d/FILE_ID/view → https://lh3.googleusercontent.com/d/FILE_ID
+function gdriveFileId(url){
+  if(!url)return null;
   let m=url.match(/\/file\/d\/([^\/\?]+)/);
-  if(m)return `https://lh3.googleusercontent.com/d/${m[1]}`;
-  // https://drive.google.com/open?id=FILE_ID
+  if(m)return m[1];
   m=url.match(/[?&]id=([^&]+)/);
-  if(m)return `https://lh3.googleusercontent.com/d/${m[1]}`;
-  // 已是直接連結
-  return url;
+  if(m)return m[1];
+  return null;
+}
+// 一般顯示用（縮圖，載入快）
+function gdriveUrl(url){
+  const id=gdriveFileId(url);
+  if(id)return `https://lh3.googleusercontent.com/d/${id}`;
+  return url||'';
+}
+// 高解析度用（原始檔案，用於放大檢視）
+function gdriveHiRes(url){
+  const id=gdriveFileId(url);
+  if(id)return `https://drive.google.com/uc?export=view&id=${id}`;
+  return url||'';
 }
 
 function mapCat(c){
@@ -819,7 +828,7 @@ function renderMapPage(rows){
         <div class="map-chevron" id="map-chev-${i}">▼</div>
       </div>
       ${img?`<div class="map-img-box" id="map-img-${i}">
-        <img src="${gdriveUrl(img)}" alt="${name}" loading="lazy" style="cursor:zoom-in" onclick="openLightbox('${gdriveUrl(img)}','${url||''}')" onerror="this.parentElement.style.display='none'">
+        <img src="${gdriveUrl(img)}" alt="${name}" loading="lazy" style="cursor:zoom-in" onclick="openLightbox('${img}','${url||''}')" onerror="this.parentElement.style.display='none'">
       </div>`:''}
     </div>`;
   }
@@ -831,7 +840,8 @@ function openLightbox(src,url){
   const lb=document.getElementById('lightbox');
   const img=document.getElementById('lightbox-img');
   if(!lb||!img)return;
-  img.src=src;
+  // 用高解析度版本顯示
+  img.src=gdriveHiRes(src);
   img.alt='';
   // 若有連結，點圖片開連結
   img.onclick=url?()=>window.open(url,'_blank'):null;
