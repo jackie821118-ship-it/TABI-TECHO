@@ -227,6 +227,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 .map-img-box{display:none;border-top:1px solid var(--wa3)}
 .map-img-box.show{display:block}
 .map-img-box img{width:100%;height:auto;display:block}
+
+/* ── Lightbox 放大圖片 */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:1000;align-items:center;justify-content:center;padding:12px}
+.lightbox.show{display:flex}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;touch-action:pinch-zoom}
+.lightbox-close{position:fixed;top:14px;right:16px;color:white;font-size:28px;cursor:pointer;z-index:1001;line-height:1;background:rgba(0,0,0,.4);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
@@ -296,6 +302,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lightbox-close" onclick="closeLightbox()">✕</div>
+  <img id="lightbox-img" src="" alt="">
+</div>
 
 <!-- BOTTOM NAV (3 items only) -->
 <!-- 購物分頁 -->
@@ -808,13 +819,33 @@ function renderMapPage(rows){
         <div class="map-chevron" id="map-chev-${i}">▼</div>
       </div>
       ${img?`<div class="map-img-box" id="map-img-${i}">
-        <img src="${gdriveUrl(img)}" alt="${name}" loading="lazy" style="${url?'cursor:pointer':''}" onclick="${url?`window.open('${url}','_blank')`:'void(0)'}" onerror="this.parentElement.style.display='none'">
+        <img src="${gdriveUrl(img)}" alt="${name}" loading="lazy" style="cursor:zoom-in" onclick="openLightbox('${gdriveUrl(img)}','${url||''}')" onerror="this.parentElement.style.display='none'">
       </div>`:''}
     </div>`;
   }
   if(!h)h='<div class="loading-card"><div style="color:var(--su3)">尚無地圖資料</div></div>';
   setEl('map-content',h);
 }
+
+function openLightbox(src,url){
+  const lb=document.getElementById('lightbox');
+  const img=document.getElementById('lightbox-img');
+  if(!lb||!img)return;
+  img.src=src;
+  img.alt='';
+  // 若有連結，點圖片開連結
+  img.onclick=url?()=>window.open(url,'_blank'):null;
+  img.style.cursor=url?'pointer':'default';
+  lb.classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeLightbox(){
+  const lb=document.getElementById('lightbox');
+  if(lb)lb.classList.remove('show');
+  document.body.style.overflow='';
+}
+// ESC 鍵關閉
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
 
 function toggleMap(i){
   const box=document.getElementById('map-img-'+i);
