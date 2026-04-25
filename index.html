@@ -332,7 +332,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 <script>
 const SHEET_ID='1bOCgGEbMbJr_B771DvL6iFqX0fLPivfCA_4ma6aq2T4';
 const TLAB={sight:'景點',food:'餐飲',transport:'交通',shopping:'購物',hotel:'住宿',collect:'收集'};
-let S={trip:{title:'—',dates:'—'},days:[],itinerary:{},weatherDays:{},weatherData:{}};
+let S={trip:{title:'—',dates:'—',mapImg:''},days:[],itinerary:{},weatherDays:{},weatherData:{}};
 let curDay={itin:0,transport:0,weather:0},curCity=0,wxPlaces=[];
 
 function csvUrl(s){
@@ -396,13 +396,15 @@ async function loadAll(){
 // 主題：掃描 key-value 找旅遊主題/旅遊時間
 function parseTheme(rows){
   if(!rows||rows.length<1)return;
-  S.trip.title='旅遊手帳';S.trip.dates='';
+  S.trip.title='旅遊手帳';S.trip.dates='';S.trip.mapImg='';
   for(const r of rows){
     const key=(r[0]||'').trim(),val=(r[1]||'').trim();
     if(key==='旅遊主題'&&val)S.trip.title=val;
     if(key==='旅遊時間'&&val)S.trip.dates=val;
   }
-  console.log('主題:',S.trip.title,S.trip.dates);
+  // B3 = rows[2][1]（景點地圖連結圖片）
+  if(rows[2]&&rows[2][1])S.trip.mapImg=(rows[2][1]||'').trim();
+  console.log('主題:',S.trip.title,S.trip.dates,'mapImg:',S.trip.mapImg);
 }
 
 // 摘要：row[0]=欄位標題, row[1+]=每日 Day/日期/標題
@@ -812,7 +814,14 @@ function renderMapPage(rows){
   const cUrl=fi('連結','網頁','url','link');
   const fc=(r,c,fb)=>c>=0?String(r[c]??'').trim():(fb>=0?String(r[fb]??'').trim():'');
 
+  // 景點標示圖（SHEET[主題] B3）
   let h='';
+  if(S.trip.mapImg){
+    const imgSrc=gdriveUrl(S.trip.mapImg);
+    h+=`<div style="margin-bottom:12px;border-radius:9px;overflow:hidden;border:1px solid var(--wa3);box-shadow:0 2px 6px var(--sh);cursor:zoom-in" onclick="openLightbox('${S.trip.mapImg}','')">
+      <img src="${imgSrc}" alt="景點地圖" style="width:100%;height:auto;display:block" loading="lazy" onerror="this.parentElement.style.display='none'">
+    </div>`;
+  }
   for(let i=1;i<rows.length;i++){
     const r=rows[i];
     const name=fc(r,cName,0);
