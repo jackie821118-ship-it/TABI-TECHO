@@ -408,6 +408,7 @@ function parseItinerary(rows){
   const cUrl   = fi('網頁','連結') >= 0 ? fi('網頁','連結') : 9;
   const cGmap  = fi('Google Map','google map','地圖') >= 0 ? fi('Google Map','google map','地圖') : 10;
   const cImg   = fi('圖片','image','img','照片');
+  const cTrImg = fi('交通圖','transport_img','交通照片');
   console.log('行程欄位:', JSON.stringify(hdr));
   console.log('欄位index: Day=0 timeS='+cTimeS+' timeE='+cTimeE+' dur='+cDur+' name='+cName+' cat='+cCat);
   const fc=(r,c,fb)=>c>=0?String(r[c]??'').trim():(fb>=0?String(r[fb]??'').trim():'');
@@ -422,7 +423,7 @@ function parseItinerary(rows){
       timeS:fc(r,cTimeS,1),timeE:fc(r,cTimeE,cTimeE>=0?cTimeE:2),
       type,icon:typeIcon(type),name,cat,
       desc:fc(r,cDesc,4),dur:fc(r,cDur,-1),cost:fc(r,cCost,6),
-      note:fc(r,cNote,7),url:fc(r,cUrl,8),gmap:fc(r,cGmap,-1),img:fc(r,cImg,-1)
+      note:fc(r,cNote,7),url:fc(r,cUrl,8),gmap:fc(r,cGmap,-1),img:fc(r,cImg,-1),trImg:fc(r,cTrImg,-1)
     });
   }
   console.log('行程:',Object.values(S.itinerary).flat().length,'筆');
@@ -739,7 +740,8 @@ function renderTrDay(idx){
           ${it.url?`<a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#3d6e8a;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.url}" target="_blank">🔗 開啟網頁 ↗</a>`:''}
           ${it.gmap?`<a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#4285f4;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.gmap}" target="_blank">📍 Google Map</a>`:''}
         </div>`:''}
-      </div>`;
+      
+        ${it.trImg?`<div style="border-top:1px solid #ddd3bc"><img src="${gdriveUrl(it.trImg)}" alt="" style="width:100%;height:auto;display:block" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`:''}</div>`;
     });
   }
   setEl('tr-content',h);
