@@ -712,9 +712,12 @@ function renderTrDay(idx){
       const depT=it.timeS||'—',arrT=it.timeE||'—';
       const noteH=it.note?`<div style="padding:9px 13px;background:#ede6d5;border-top:1px solid #ddd3bc"><div style="font-size:12px;color:#5c5044;line-height:1.75">${it.note.replace(/\n/g,'<br>')}</div></div>`:'';
       h+=`<div class="trc">
-        <div class="trh">
+        <div class="trh" ${it.trImg?`onclick="toggleTrImg(this)" style="cursor:pointer"`:''}">
           <div class="trrt">${from}${to?' → '+to:''}</div>
-          <div class="trtp">${it.cat||'交通'}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="trtp">${it.cat||'交通'}</div>
+            ${it.trImg?`<span class="tr-img-arrow" style="font-size:10px;color:rgba(255,255,255,.7);transition:transform .25s">▼</span>`:''}
+          </div>
         </div>
         ${to?`<div style="display:flex;align-items:center;gap:8px;padding:10px 13px">
           <div style="text-align:center;flex:1">
@@ -741,7 +744,7 @@ function renderTrDay(idx){
           ${it.gmap?`<a style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:white;background:#4285f4;padding:5px 11px;border-radius:5px;text-decoration:none;font-weight:600" href="${it.gmap}" target="_blank">📍 Google Map</a>`:''}
         </div>`:''}
       
-        ${it.trImg?`<div style="border-top:1px solid #ddd3bc"><img src="${gdriveUrl(it.trImg)}" alt="" style="width:100%;height:auto;display:block" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`:''}</div>`;
+        ${it.trImg?`<div class="tr-img-box" style="display:none;border-top:1px solid #ddd3bc"><img src="${gdriveUrl(it.trImg)}" alt="" style="width:100%;height:auto;display:block" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`:''}</div>`;
     });
   }
   setEl('tr-content',h);
@@ -814,6 +817,15 @@ function renderShopping(rows){
 
   if(!h)h='<div class="loading-card"><div style="color:var(--su3)">尚無購物資料</div></div>';
   setEl('shop-content',h);
+}
+
+function toggleTrImg(hdr){
+  const box=hdr.parentElement.querySelector('.tr-img-box');
+  const arrow=hdr.querySelector('.tr-img-arrow');
+  if(!box)return;
+  const show=box.style.display==='none'||!box.style.display;
+  box.style.display=show?'block':'none';
+  if(arrow)arrow.style.transform=show?'rotate(180deg)':'rotate(0deg)';
 }
 
 function toggleStore(si){
