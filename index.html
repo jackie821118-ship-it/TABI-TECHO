@@ -239,6 +239,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
   <link rel="apple-touch-icon" href="favicon.png">
 </head>
 <body>
+<!-- 封面 -->
+<div id="cover-screen" style="position:fixed;inset:0;z-index:9999;background:#2e2720;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer" onclick="enterApp()">
+  <img id="cover-img" src="" alt="封面" style="width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .5s">
+  <div id="cover-hint" style="position:absolute;bottom:48px;left:50%;transform:translateX(-50%);color:white;font-size:13px;font-weight:600;letter-spacing:3px;opacity:0;transition:opacity .5s;text-align:center;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.6)">點擊進入 ▶</div>
+</div>
+
 <div class="sgb"></div>
 
 <!-- HEADER -->
@@ -335,7 +341,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 <script>
 const SHEET_ID='1bOCgGEbMbJr_B771DvL6iFqX0fLPivfCA_4ma6aq2T4';
 const TLAB={sight:'景點',food:'餐飲',transport:'交通',shopping:'購物',hotel:'住宿',collect:'收集'};
-let S={trip:{title:'—',dates:'—',mapImg:''},days:[],itinerary:{},weatherDays:{},weatherData:{}};
+let S={trip:{title:'—',dates:'—',mapImg:'',coverImg:''},days:[],itinerary:{},weatherDays:{},weatherData:{}};
 let curDay={itin:0,transport:0,weather:0},curCity=0,wxPlaces=[];
 
 function csvUrl(s){
@@ -391,6 +397,8 @@ async function loadAll(){
   renderItinDays();renderItinDay(0);
   renderWxDays();renderWxDay(0);
   renderTrDays();renderTrDay(0);
+  // 顯示封面
+  showCover();
   const now=new Date();
   setSS('ok','已更新 '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));
   toast(S.days.length>0?'✓ 資料已更新':'⚠ 未讀到資料');
@@ -407,6 +415,8 @@ function parseTheme(rows){
   }
   // B3 = rows[2][1]（景點地圖連結圖片）
   if(rows[2]&&rows[2][1])S.trip.mapImg=(rows[2][1]||'').trim();
+  // B4 = rows[3][1]（封面圖片）
+  if(rows[3]&&rows[3][1])S.trip.coverImg=(rows[3][1]||'').trim();
   console.log('主題:',S.trip.title,S.trip.dates,'mapImg:',S.trip.mapImg);
 }
 
@@ -1019,6 +1029,30 @@ function setEl(id,html){const el=document.getElementById(id);if(el)el.innerHTML=
 function showErr(id,msg){setEl(id,`<div class="error-card"><div class="err-ttl">⚠️ 載入失敗</div><div class="err-txt">${msg}</div><div class="err-hint">請確認試算表已設為「任何人可以檢視」，分頁：主題/摘要/行程/天氣</div></div>`);}
 
 // 動態設定 header 高度給 sticky 用
+function showCover(){
+  const cover=document.getElementById('cover-screen');
+  const img=document.getElementById('cover-img');
+  const hint=document.getElementById('cover-hint');
+  if(!cover||!img)return;
+  const src=S.trip.coverImg?gdriveUrl(S.trip.coverImg):'';
+  if(!src){enterApp();return;}  // 沒有封面圖直接進入
+  img.onload=()=>{
+    img.style.opacity='1';
+    setTimeout(()=>{if(hint)hint.style.opacity='1';},600);
+  };
+  img.onerror=()=>enterApp();  // 圖片載入失敗直接進入
+  img.src=src;
+  cover.style.display='flex';
+}
+
+function enterApp(){
+  const cover=document.getElementById('cover-screen');
+  if(!cover)return;
+  cover.style.transition='opacity .4s';
+  cover.style.opacity='0';
+  setTimeout(()=>{cover.style.display='none';},400);
+}
+
 function setHdrHeight(){
   const hdr=document.querySelector('.hdr');
   if(hdr)document.documentElement.style.setProperty('--hdr-h',hdr.offsetHeight+'px');
