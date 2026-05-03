@@ -472,21 +472,52 @@ function parseWeatherSheet(rows){
   S.weatherDays={};
   const hdr=rows[0];
   const fi=(...keys)=>{for(const k of keys){const i=hdr.findIndex(h=>h===k||h.includes(k));if(i>=0)return i;}return -1;};
-  const cDay=fi('Day','day','天'),cTime=fi('時間'),cPlc=fi('地點','城市');
-  const fc=(r,c,fb)=>String(r[c>=0?c:fb]??'').trim();
+  const cDay  = fi('Day','day','天');
+  const cTime = fi('時間','time');
+  const cPref = fi('都道府縣','縣','都','府','prefecture');  // 都道府縣
+  const cCity = fi('城市','市','city');                      // 城市
+  const cPlc  = fi('地點','place');                          // 舊欄位相容
+  const fc=(r,c,fb)=>c>=0?String(r[c]??'').trim():(fb>=0?String(r[fb]??'').trim():'');
+
   for(let i=1;i<rows.length;i++){
-    const r=rows[i],dayNum=parseInt(fc(r,cDay,0));
+    const r=rows[i];
+    const dayNum=parseInt(fc(r,cDay,0));
     if(isNaN(dayNum)||dayNum<1)continue;
-    const place=fc(r,cPlc,2);if(!place)continue;
+    const pref=fc(r,cPref,-1);   // 例：愛知県
+    const city=fc(r,cCity,-1);   // 例：犬山市
+    // 地點顯示名：優先用城市，沒有就用縣，再沒有用舊地點欄
+    const place=city||pref||fc(r,cPlc,2);
+    if(!place)continue;
     if(!S.weatherDays[dayNum])S.weatherDays[dayNum]=[];
-    S.weatherDays[dayNum].push({time:fc(r,cTime,1),place});
+    S.weatherDays[dayNum].push({
+      time:fc(r,cTime,1),
+      place,
+      pref,
+      city,
+      // tenki 搜尋連結：用都道府縣+城市組合搜尋
+      tenkiUrl:makeTenkiUrl(pref,city),
+    });
   }
+  // 唯一地點（含完整資訊）
   const seen=new Set();wxPlaces=[];
+  // wxPlaceInfo 存每個地點的詳細資訊（pref, city, tenkiUrl, coords）
+  window.wxPlaceInfo=window.wxPlaceInfo||{};
   for(const arr of Object.values(S.weatherDays))
     for(const d of arr)
-      if(d.place&&!seen.has(d.place)){seen.add(d.place);wxPlaces.push(d.place);}
+      if(d.place&&!seen.has(d.place)){
+        seen.add(d.place);
+        wxPlaces.push(d.place);
+        window.wxPlaceInfo[d.place]={pref:d.pref,city:d.city,tenkiUrl:d.tenkiUrl};
+      }
   if(!wxPlaces.length)wxPlaces=['名古屋'];
-  console.log('天氣地點:',wxPlaces);
+  console.log('天氣地點:',wxPlaces,window.wxPlaceInfo);
+}
+
+// tenki.jp 搜尋連結（用搜尋頁面，不需要固定城市代碼）
+function makeTenkiUrl(pref,city){
+  const query=encodeURIComponent((city||pref||'').replace(/[都道府縣市区町村]/g,''));
+  if(!query)return 'https://tenki.jp/';
+  return `https://tenki.jp/search/?keyword=${query}`;
 }
 
 // Google Drive 連結轉換為可直接顯示的圖片 URL
@@ -524,24 +555,60 @@ function typeIcon(t){return{sight:'⛩',food:'🍜',transport:'🚅',shopping:'�
 
 // ── WEATHER
 const COORDS={
-  '名古屋':{lat:35.1815,lon:136.9066,name:'名古屋·NAGOYA',tenki:'https://tenki.jp/forecast/5/26/5110/23100/'},
-  '愛知':  {lat:35.1802,lon:136.9066,name:'愛知縣',       tenki:'https://tenki.jp/forecast/5/26/5110/23100/'},
-  '三重':  {lat:34.7303,lon:136.5086,name:'三重縣',       tenki:'https://tenki.jp/forecast/5/27/5410/24202/'},
-  '伊勢':  {lat:34.4884,lon:136.7076,name:'伊勢',         tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},
-  '志摩':  {lat:34.3273,lon:136.8312,name:'志摩',         tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},
-  '鳥羽':  {lat:34.4849,lon:136.8437,name:'鳥羽',         tenki:'https://tenki.jp/forecast/5/27/5410/24215/'},
-  '松阪':  {lat:34.5789,lon:136.5274,name:'松阪',         tenki:'https://tenki.jp/forecast/5/27/5410/24205/'},
-  '滋賀':  {lat:35.0045,lon:135.8686,name:'滋賀縣',       tenki:'https://tenki.jp/forecast/6/29/6000/25201/'},
-  '彦根':  {lat:35.2752,lon:136.2636,name:'彦根',         tenki:'https://tenki.jp/forecast/6/29/6000/25202/'},
-  '近江八幡':{lat:35.1284,lon:136.0985,name:'近江八幡',   tenki:'https://tenki.jp/forecast/6/29/6000/25208/'},
-  '琵琶湖':{lat:35.2958,lon:136.1253,name:'琵琶湖周邊',   tenki:'https://tenki.jp/forecast/6/29/6000/25201/'},
-  '京都':  {lat:35.0116,lon:135.7681,name:'京都·KYOTO',  tenki:'https://tenki.jp/forecast/6/30/6100/26100/'},
-  '大阪':  {lat:34.6937,lon:135.5022,name:'大阪·OSAKA',  tenki:'https://tenki.jp/forecast/6/30/6200/27100/'},
-  '奈良':  {lat:34.6851,lon:135.8048,name:'奈良·NARA',   tenki:'https://tenki.jp/forecast/6/30/6300/29201/'},
-  '東京':  {lat:35.6762,lon:139.6503,name:'東京·TOKYO',  tenki:'https://tenki.jp/forecast/3/16/4410/13101/'},
-  '中部機場':{lat:34.8583,lon:136.8050,name:'中部機場',   tenki:'https://tenki.jp/forecast/5/26/5110/23234/'},
+  // 愛知
+  '名古屋':{lat:35.1815,lon:136.9066,name:'名古屋市'},
+  '愛知':  {lat:35.1802,lon:136.9066,name:'愛知縣'},
+  '犬山':  {lat:35.3833,lon:136.9333,name:'犬山市'},
+  '豊田':  {lat:35.0836,lon:137.1561,name:'豊田市'},
+  '岡崎':  {lat:34.9589,lon:137.1744,name:'岡崎市'},
+  '一宮':  {lat:35.3078,lon:136.8006,name:'一宮市'},
+  '春日井':{lat:35.2476,lon:136.9724,name:'春日井市'},
+  '豊橋':  {lat:34.7693,lon:137.3916,name:'豊橋市'},
+  '半田':  {lat:34.8939,lon:136.9390,name:'半田市'},
+  '常滑':  {lat:34.8839,lon:136.8345,name:'常滑市'},
+  '中部機場':{lat:34.8583,lon:136.8050,name:'中部国際空港'},
+  // 三重
+  '三重':  {lat:34.7303,lon:136.5086,name:'三重縣'},
+  '伊勢':  {lat:34.4884,lon:136.7076,name:'伊勢市'},
+  '志摩':  {lat:34.3273,lon:136.8312,name:'志摩市'},
+  '鳥羽':  {lat:34.4849,lon:136.8437,name:'鳥羽市'},
+  '松阪':  {lat:34.5789,lon:136.5274,name:'松阪市'},
+  '津':    {lat:34.7303,lon:136.5086,name:'津市'},
+  '四日市':{lat:34.9731,lon:136.6244,name:'四日市市'},
+  '桑名':  {lat:35.0607,lon:136.6861,name:'桑名市'},
+  '名張':  {lat:34.6278,lon:136.1091,name:'名張市'},
+  // 滋賀
+  '滋賀':  {lat:35.0045,lon:135.8686,name:'滋賀縣'},
+  '大津':  {lat:35.0045,lon:135.8686,name:'大津市'},
+  '彦根':  {lat:35.2752,lon:136.2636,name:'彦根市'},
+  '長浜':  {lat:35.3811,lon:136.2687,name:'長浜市'},
+  '米原':  {lat:35.3192,lon:136.2844,name:'米原市'},
+  '近江八幡':{lat:35.1284,lon:136.0985,name:'近江八幡市'},
+  '草津':  {lat:35.0156,lon:135.9603,name:'草津市'},
+  '守山':  {lat:35.0517,lon:135.9950,name:'守山市'},
+  '甲賀':  {lat:34.9667,lon:136.1667,name:'甲賀市'},
+  '甲賀市':{lat:34.9667,lon:136.1667,name:'甲賀市'},
+  '琵琶湖':{lat:35.2958,lon:136.1253,name:'琵琶湖周邊'},
+  // 京都・大阪・奈良
+  '京都':  {lat:35.0116,lon:135.7681,name:'京都市'},
+  '大阪':  {lat:34.6937,lon:135.5022,name:'大阪市'},
+  '奈良':  {lat:34.6851,lon:135.8048,name:'奈良市'},
+  // 東京
+  '東京':  {lat:35.6762,lon:139.6503,name:'東京都'},
 };
-function resolveC(p){if(COORDS[p])return COORDS[p];for(const[k,v]of Object.entries(COORDS)){if(p.includes(k)||k.includes(p))return v;}return COORDS['名古屋'];}
+function resolveC(p){
+  if(!p)return COORDS['名古屋'];
+  // 完全比對
+  if(COORDS[p])return COORDS[p];
+  // 移除市/縣/市區等後綴再比對
+  const clean=p.replace(/[市区町村都道府縣県]/g,'');
+  if(COORDS[clean])return COORDS[clean];
+  // 部分比對
+  for(const[k,v]of Object.entries(COORDS)){
+    if(p.includes(k)||k.includes(p)||clean.includes(k)||k.includes(clean))return v;
+  }
+  return COORDS['名古屋'];
+}
 function wmo(c){if(c===0)return{ic:'☀️',d:'晴天'};if(c<=2)return{ic:'🌤',d:'部分多雲'};if(c===3)return{ic:'☁️',d:'多雲'};if(c<=49)return{ic:'🌫',d:'霧'};if(c<=59)return{ic:'🌦',d:'毛毛雨'};if(c<=69)return{ic:'🌧',d:'雨'};if(c<=79)return{ic:'🌨',d:'雪'};if(c<=84)return{ic:'🌧',d:'陣雨'};if(c<=99)return{ic:'⛈',d:'雷暴'};return{ic:'🌡',d:'—'};}
 async function fetchWx(place){const c=resolveC(place);const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,relativehumidity_2m,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=8`);if(!r.ok)throw new Error('wx');return{coords:c,data:await r.json()};}
 async function fetchAllWeather(){
@@ -693,7 +760,9 @@ function renderWeather(){
   const hIdx=ti>=0?ti+now.getHours():0;
   const hm=data.hourly?.relativehumidity_2m?.[hIdx]??0;
   const uv=data.hourly?.uv_index?.[hIdx]??0,uvT=uv<=2?'低':uv<=5?'中等':uv<=7?'高':'極強';
-  document.getElementById('wx-city').textContent=coords.name;
+  const plI=window.wxPlaceInfo&&window.wxPlaceInfo[pl];
+  const cityLabel=plI&&plI.city?`${plI.pref||''} ${plI.city}`.trim():coords.name;
+  document.getElementById('wx-city').textContent=cityLabel;
   document.getElementById('wx-temp').textContent=t+'°';
   document.getElementById('wx-cond').textContent=w.ic+' '+w.d;
   document.getElementById('wx-hl').textContent=`最高 ${hi}° · 最低 ${lo}°`;
@@ -701,7 +770,8 @@ function renderWeather(){
   document.getElementById('wx-rain').textContent=rp+'%';
   document.getElementById('wx-wind').textContent=spd+'km/h';
   document.getElementById('wx-uv').textContent=uvT;
-  document.getElementById('tenki-lnk').href=coords.tenki;
+  const plInfo=window.wxPlaceInfo&&window.wxPlaceInfo[pl];
+  document.getElementById('tenki-lnk').href=plInfo?.tenkiUrl||coords.tenki||'https://tenki.jp/';
   document.getElementById('hdr-temp').textContent=t+'°';
   document.getElementById('hdr-sub').textContent=w.ic+' '+coords.name.split('·')[0].trim();
   let adv=`目前氣溫 ${t}°，`;
