@@ -241,7 +241,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:900;b
 <body>
 <!-- 封面 -->
 <div id="cover-screen" style="position:fixed;inset:0;z-index:9999;background:#2e2720;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer" onclick="enterApp()">
-  <img id="cover-img" src="" alt="封面" style="width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .5s">
+  <img id="cover-img" src="" alt="封面" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;opacity:0;transition:opacity .5s;border-radius:4px">
   <div id="cover-hint" style="position:absolute;bottom:48px;left:50%;transform:translateX(-50%);color:white;font-size:13px;font-weight:600;letter-spacing:3px;opacity:0;transition:opacity .5s;text-align:center;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.6)">點擊進入 ▶</div>
 </div>
 
